@@ -1,7 +1,9 @@
 "use client";
 
+/* eslint-disable react/no-unescaped-entities */
+
 import { useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -18,7 +20,6 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const { login } = useAuth();
   const router = useRouter();
-  const searchParams = useSearchParams();
   const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -32,8 +33,7 @@ export default function LoginPage() {
           title: "Welcome back!",
           description: "You have successfully logged in.",
         });
-        const redirect = searchParams.get("redirect") || "/";
-        router.push(redirect);
+        router.push("/member/dashboard");
       } else {
         toast({
           title: "Login failed",
@@ -112,6 +112,8 @@ export default function LoginPage() {
     </div>
   );
 }
+
+
 
 
 

@@ -5,9 +5,11 @@ import { useAuth } from "@/contexts/auth-context";
 import { RankBadge } from "@/components/reusable/rank-badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { motion } from "framer-motion";
-import { Trophy, TrendingUp, Award } from "lucide-react";
-import { getRankTier } from "@/lib/utils";
+import { motion, AnimatePresence } from "framer-motion";
+import { Trophy, TrendingUp, Award, Flame } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 const rankTiers = [
   { name: "Bronze", minDays: 1, maxDays: 7, color: "from-amber-600 to-amber-800" },
@@ -20,6 +22,10 @@ export default function RankPage() {
   const { user } = useAuth();
   const currentStreak = user?.streak || 0;
   const currentRank = user?.rank || "Bronze";
+  const [leaderboard, setLeaderboard] = useState<
+    { id: string; name: string; streak: number; rank: "Bronze" | "Silver" | "Gold" | "Platinum" }[]
+  >([]);
+  const [isLoadingBoard, setIsLoadingBoard] = useState(true);
 
   const currentTier = rankTiers.find((tier) => tier.name === currentRank);
   const nextTier = rankTiers[rankTiers.findIndex((tier) => tier.name === currentRank) + 1];
@@ -36,6 +42,26 @@ export default function RankPage() {
   const daysToNextRank = nextTier
     ? Math.max(0, nextTier.minDays - currentStreak)
     : 0;
+
+  // Mock fetch leaderboard (replace with real /api/leaderboard)
+  useEffect(() => {
+    const mock = [
+      { id: "1", name: "Sahil Mehta", streak: 84, rank: "Gold" as const },
+      { id: "2", name: "Rohan Gupta", streak: 56, rank: "Silver" as const },
+      { id: "3", name: "Abhishek Rao", streak: 32, rank: "Bronze" as const },
+      { id: "4", name: "You", streak: currentStreak, rank: currentRank as any },
+    ];
+    const sorted = mock.sort((a, b) => b.streak - a.streak);
+    setLeaderboard(sorted);
+    setIsLoadingBoard(false);
+  }, [currentRank, currentStreak]);
+
+  const highestStreak = useMemo(
+    () => Math.max(...leaderboard.map((u) => u.streak), 1),
+    [leaderboard]
+  );
+
+  const progressFor = (streak: number) => Math.min(100, Math.round((streak / highestStreak) * 100));
 
   return (
     <RouteGuard allowedRoles={["member"]}>
@@ -152,11 +178,74 @@ export default function RankPage() {
               })}
             </div>
           </div>
+
+          {/* Leaderboard */}
+          <div className="mt-12">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-2xl font-bold">Leaderboard</h2>
+              <Button variant="outline" size="sm" onClick={() => window.location.reload()}>
+                Refresh
+              </Button>
+            </div>
+            <div className="space-y-3">
+              <AnimatePresence>
+                {isLoadingBoard ? (
+                  <p className="text-muted-foreground text-sm">Loading leaderboard...</p>
+                ) : (
+                  leaderboard.map((entry, index) => {
+                    const progress = progressFor(entry.streak);
+                    return (
+                      <motion.div
+                        key={entry.id}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                        transition={{ delay: index * 0.05 }}
+                      >
+                        <Card className="overflow-hidden">
+                          <CardContent className="p-4 flex items-center gap-4">
+                            <div className="flex items-center gap-3 w-1/3">
+                              <Avatar>
+                                <AvatarFallback>{entry.name.charAt(0).toUpperCase()}</AvatarFallback>
+                              </Avatar>
+                              <div>
+                                <div className="font-semibold">{entry.name}</div>
+                                <div className="text-xs text-muted-foreground">#{index + 1}</div>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2 w-1/3">
+                              <Flame className="h-4 w-4 text-primary" />
+                              <span className="text-sm font-medium">{entry.streak} days</span>
+                              <RankBadge rank={entry.rank} />
+                            </div>
+                            <div className="w-1/3">
+                              <div className="flex justify-between text-xs mb-1 text-muted-foreground">
+                                <span>Progress</span>
+                                <span>{progress}%</span>
+                              </div>
+                              <div className="h-2 rounded-full bg-muted">
+                                <div
+                                  className="h-2 rounded-full bg-primary transition-all"
+                                  style={{ width: `${progress}%` }}
+                                />
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </motion.div>
+                    );
+                  })
+                )}
+              </AnimatePresence>
+            </div>
+          </div>
         </motion.div>
       </div>
     </RouteGuard>
   );
 }
+
+
 
 
 

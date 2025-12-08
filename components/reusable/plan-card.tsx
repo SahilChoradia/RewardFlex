@@ -38,12 +38,12 @@ export function PlanCard({ plan, isCurrent, onSubscribe, delay = 0 }: PlanCardPr
         <CardHeader>
           <CardTitle className="text-2xl">{plan.name}</CardTitle>
           <div className="mt-4">
-            <span className="text-4xl font-bold">${plan.price}</span>
+            <span className="text-4xl font-bold">₹{plan.price}</span>
             <span className="text-muted-foreground">/{plan.duration === "monthly" ? "mo" : "yr"}</span>
           </div>
           {plan.duration === "annual" && (
             <CardDescription className="mt-2">
-              Save ${(plan.price / 12).toFixed(2)} per month
+              Save ₹{(plan.price / 12).toFixed(0)} per month
             </CardDescription>
           )}
         </CardHeader>
@@ -72,6 +72,7 @@ export function PlanCard({ plan, isCurrent, onSubscribe, delay = 0 }: PlanCardPr
     </motion.div>
   );
 }
+
 
 
 

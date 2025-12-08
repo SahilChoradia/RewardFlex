@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { useState } from "react";
 import { useAuth } from "@/contexts/auth-context";
 import { Button } from "@/components/ui/button";
 import {
@@ -12,14 +13,14 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { motion } from "framer-motion";
-import { User, LogOut, Dumbbell } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { motion, AnimatePresence } from "framer-motion";
+import { User, LogOut, Dumbbell, Menu, X } from "lucide-react";
 
 export function Navbar() {
   const pathname = usePathname();
   const { isAuthenticated, role, user, logout } = useAuth();
   const router = useRouter();
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   const handleLogout = () => {
     logout();
@@ -27,17 +28,10 @@ export function Navbar() {
   };
 
   const navLinks = [
-    // Show "Home" only when NOT logged in
     ...(!isAuthenticated ? [{ href: "/", label: "Home" }] : []),
-    // Show "Dashboard" when logged in (role-based)
-    ...(isAuthenticated && role === "member"
-      ? [{ href: "/member/dashboard", label: "Dashboard" }]
-      : []),
-    ...(isAuthenticated && role === "owner"
-      ? [{ href: "/owner/dashboard", label: "Dashboard" }]
-      : []),
+    ...(isAuthenticated ? [{ href: "/member/dashboard", label: "Dashboard" }] : []),
     { href: "/about", label: "About" },
-    ...(role === "member" || role === "owner"
+    ...(isAuthenticated
       ? [
           { href: "/tasks", label: "Tasks" },
           { href: "/subscription", label: "Subscription" },
@@ -47,8 +41,9 @@ export function Navbar() {
           { href: "/ai-diet", label: "AI Diet" },
         ]
       : []),
-    // Remove duplicate Owner Dashboard since Dashboard already handles it
   ];
+
+  const mobileLinks = navLinks;
 
   return (
     <nav className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -58,6 +53,7 @@ export function Navbar() {
           <span className="text-xl font-bold">StreakFitX</span>
         </Link>
 
+        {/* Desktop menu */}
         <div className="hidden md:flex items-center space-x-6">
           {navLinks.map((link) => {
             const isActive = pathname === link.href;
@@ -89,7 +85,8 @@ export function Navbar() {
           })}
         </div>
 
-        <div className="flex items-center space-x-4">
+        {/* Desktop auth buttons */}
+        <div className="hidden md:flex items-center space-x-4">
           {isAuthenticated ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -118,7 +115,61 @@ export function Navbar() {
             </>
           )}
         </div>
+
+        {/* Mobile hamburger */}
+        <button
+          className="md:hidden inline-flex items-center justify-center p-2 rounded-md text-foreground hover:text-primary focus:outline-none"
+          onClick={() => setMobileOpen((prev) => !prev)}
+          aria-label="Toggle menu"
+        >
+          {mobileOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+        </button>
       </div>
+
+      {/* Mobile menu */}
+      <AnimatePresence>
+        {mobileOpen && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.2 }}
+            className="md:hidden border-t bg-background/95 backdrop-blur"
+          >
+            <div className="px-4 py-3 space-y-3">
+              {mobileLinks.map((link) => (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  onClick={() => setMobileOpen(false)}
+                  className={`block text-sm font-medium transition-colors ${
+                    pathname === link.href ? "text-primary" : "text-foreground hover:text-primary"
+                  }`}
+                >
+                  {link.label}
+                </Link>
+              ))}
+
+              <div className="pt-2 flex gap-2">
+                {isAuthenticated ? (
+                  <Button variant="outline" className="flex-1" onClick={handleLogout}>
+                    Logout
+                  </Button>
+                ) : (
+                  <>
+                    <Button variant="outline" className="flex-1" asChild onClick={() => setMobileOpen(false)}>
+                      <Link href="/login">Login</Link>
+                    </Button>
+                    <Button className="flex-1" asChild onClick={() => setMobileOpen(false)}>
+                      <Link href="/signup">Sign Up</Link>
+                    </Button>
+                  </>
+                )}
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </nav>
   );
 }

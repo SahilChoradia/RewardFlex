@@ -1,5 +1,7 @@
 "use client";
 
+/* eslint-disable react/no-unescaped-entities */
+
 import { Task } from "@/types";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -104,8 +106,10 @@ export function TaskCardEnhanced({
    * Only YouTube or Google Drive links allowed
    */
   const validateExerciseLink = (url: string): boolean => {
-    const validPattern = /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be|drive\.google\.com)\/.+$/;
-    return validPattern.test(url.trim());
+    const youtubeRegex = /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\/.+$/;
+    const driveRegex = /^(https?:\/\/)?(www\.)?drive\.google\.com\/.+$/;
+    const value = url.trim();
+    return youtubeRegex.test(value) || driveRegex.test(value);
   };
 
   const handleLinkChange = (e: React.ChangeEvent<HTMLInputElement>) => {

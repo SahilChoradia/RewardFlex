@@ -1,13 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useAuth } from "@/contexts/auth-context";
 import Link from "next/link";
 import { useToast } from "@/hooks/use-toast";
@@ -18,20 +17,10 @@ export default function SignupPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [role, setRole] = useState<"member" | "owner">("member");
   const [isLoading, setIsLoading] = useState(false);
   const { signup } = useAuth();
   const router = useRouter();
-  const searchParams = useSearchParams();
   const { toast } = useToast();
-
-  // Get role from URL params if present
-  useEffect(() => {
-    const urlRole = searchParams.get("role");
-    if (urlRole && (urlRole === "member" || urlRole === "owner")) {
-      setRole(urlRole);
-    }
-  }, [searchParams]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -57,14 +46,13 @@ export default function SignupPage() {
     setIsLoading(true);
 
     try {
-      const success = await signup(name, email, password, role);
+      const success = await signup(name, email, password, "member");
       if (success) {
         toast({
           title: "Account created!",
           description: "Welcome to StreakFitX!",
         });
-        const redirect = role === "owner" ? "/owner/dashboard" : "/member/dashboard";
-        router.push(redirect);
+        router.push("/login");
       } else {
         toast({
           title: "Signup failed",
@@ -142,23 +130,6 @@ export default function SignupPage() {
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   required
                 />
-              </div>
-              <div className="space-y-3">
-                <Label>I want to sign up as:</Label>
-                <RadioGroup value={role} onValueChange={(value) => setRole(value as "member" | "owner")}>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="member" id="member" />
-                    <Label htmlFor="member" className="font-normal cursor-pointer">
-                      Gym Member
-                    </Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="owner" id="owner" />
-                    <Label htmlFor="owner" className="font-normal cursor-pointer">
-                      Gym Owner
-                    </Label>
-                  </div>
-                </RadioGroup>
               </div>
               <Button type="submit" className="w-full" disabled={isLoading}>
                 {isLoading ? (

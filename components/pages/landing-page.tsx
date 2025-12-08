@@ -64,8 +64,8 @@ export function LandingPage() {
     },
     {
       name: "Mike Chen",
-      role: "Gym Owner",
-      content: "The dashboard helps me understand my members better and offer rewards that actually work.",
+      role: "Member",
+      content: "The dashboard helps me understand my progress better and stay consistent.",
     },
     {
       name: "Emily Davis",

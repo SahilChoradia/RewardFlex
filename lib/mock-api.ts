@@ -131,7 +131,7 @@ export const mockAPI = {
       {
         id: "1",
         name: "Monthly Plan",
-        price: 49.99,
+        price: 599,
         duration: "monthly",
         features: [
           "Full gym access",
@@ -143,7 +143,7 @@ export const mockAPI = {
       {
         id: "2",
         name: "Annual Plan",
-        price: 499.99,
+        price: 4999,
         duration: "annual",
         features: [
           "Full gym access",

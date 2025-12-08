@@ -1,5 +1,7 @@
 "use client";
 
+/* eslint-disable react/no-unescaped-entities */
+
 import { RouteGuard } from "@/components/auth/route-guard";
 import { useAuth } from "@/contexts/auth-context";
 import { useQuery } from "@tanstack/react-query";
@@ -181,6 +183,8 @@ export default function MemberDashboard() {
     </RouteGuard>
   );
 }
+
+
 
 
 

@@ -54,3 +54,5 @@ export function EventCard({ event, onJoin, delay = 0 }: EventCardProps) {
 
 
 
+
+

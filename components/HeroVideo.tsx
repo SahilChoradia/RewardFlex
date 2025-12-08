@@ -115,7 +115,7 @@ export function HeroVideo() {
             <Button
               size="lg"
               className="text-lg px-8 py-6"
-              onClick={() => router.push("/signup?role=member")}
+              onClick={() => router.push("/signup")}
             >
               Start as Member
             </Button>
@@ -123,17 +123,9 @@ export function HeroVideo() {
               size="lg"
               variant="outline"
               className="text-lg px-8 py-6"
-              onClick={() => router.push("/signup?role=owner")}
-            >
-              Start as Gym Owner
-            </Button>
-            <Button
-              size="lg"
-              variant="ghost"
-              className="text-lg px-8 py-6"
               onClick={() => router.push("/events")}
             >
-              Browse as Visitor
+              Explore Events
             </Button>
           </div>
         </motion.div>

@@ -1,5 +1,7 @@
 "use client";
 
+/* eslint-disable react/no-unescaped-entities */
+
 import { useState, useEffect } from "react";
 import { RouteGuard } from "@/components/auth/route-guard";
 import { useAuth } from "@/contexts/auth-context";
@@ -9,7 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { motion } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
 import { CheckCircle2, Flame } from "lucide-react";
-import { getTodayDiet, hasTodayDiet } from "@/lib/diet-storage";
+import { getTodayDiet } from "@/lib/diet-storage";
 import { useRouter } from "next/navigation";
 
 const initialTasks: Task[] = [

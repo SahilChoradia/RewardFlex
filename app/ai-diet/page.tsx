@@ -48,6 +48,48 @@ export default function AIDietPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Strict validation
+    const ageNum = Number(formData.age);
+    const weightNum = Number(formData.weight);
+    const heightNum = Number(formData.height);
+
+    if (!ageNum || !weightNum || !heightNum) {
+      toast({
+        title: "Invalid input",
+        description: "Invalid input. All values must be greater than zero.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (ageNum < 16) {
+      toast({
+        title: "Invalid age",
+        description: "Minimum age required is 16",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (weightNum <= 30) {
+      toast({
+        title: "Invalid weight",
+        description: "Weight must be above 30kg",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (heightNum <= 100) {
+      toast({
+        title: "Invalid height",
+        description: "Height must be above 100cm",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsLoading(true);
 
     try {

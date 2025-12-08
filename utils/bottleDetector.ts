@@ -20,3 +20,5 @@ export async function detectBottle(img: HTMLImageElement | HTMLCanvasElement): P
   return predictions.some((p) => classes.includes(p.class) && p.score > 0.45);
 }
 
+
+

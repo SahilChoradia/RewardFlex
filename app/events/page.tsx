@@ -10,22 +10,38 @@ import { motion } from "framer-motion";
 import Link from "next/link";
 import { useToast } from "@/hooks/use-toast";
 import { Calendar } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Card, CardContent } from "@/components/ui/card";
+import { useState } from "react";
+import { Event } from "@/types";
 
 export default function EventsPage() {
   const { role } = useAuth();
   const { toast } = useToast();
+  const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
 
   const { data: events, isLoading } = useQuery({
     queryKey: ["events"],
     queryFn: () => mockAPI.fetchEvents(),
   });
 
-  const handleJoin = (eventId: string) => {
-    // In a real app, this would call an API
+  const handleKnowMore = (event: Event) => {
+    setSelectedEvent(event);
+  };
+
+  const handleJoin = () => {
+    if (!selectedEvent) return;
     toast({
       title: "Event Joined!",
       description: "You've successfully joined this event. Check your email for details.",
     });
+    setSelectedEvent(null);
   };
 
   return (
@@ -61,7 +77,7 @@ export default function EventsPage() {
               <EventCard
                 key={event.id}
                 event={event}
-                onJoin={handleJoin}
+                onJoin={() => handleKnowMore(event)}
                 delay={index * 0.1}
               />
             ))}
@@ -77,9 +93,41 @@ export default function EventsPage() {
           </motion.div>
         )}
       </motion.div>
+
+      <Dialog open={!!selectedEvent} onOpenChange={(open) => !open && setSelectedEvent(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{selectedEvent?.title}</DialogTitle>
+            <DialogDescription>
+              {selectedEvent ? new Date(selectedEvent.date).toLocaleDateString() : ""}
+            </DialogDescription>
+          </DialogHeader>
+          {selectedEvent && (
+            <Card>
+              <CardContent className="space-y-3 pt-4">
+                <p className="text-sm text-muted-foreground">{selectedEvent.description}</p>
+                {selectedEvent.discount && (
+                  <p className="text-sm font-semibold text-primary">
+                    Offer: {selectedEvent.discount}% OFF
+                  </p>
+                )}
+                {selectedEvent.gymOwnerId && (
+                  <p className="text-sm text-muted-foreground">
+                    Host: {selectedEvent.gymOwnerId}
+                  </p>
+                )}
+                <Button className="w-full" onClick={handleJoin}>
+                  Join Event
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
+
 
 
 

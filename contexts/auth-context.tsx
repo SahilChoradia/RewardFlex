@@ -8,6 +8,7 @@ interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   role: UserRole;
+  hydrated: boolean;
   login: (email: string, password: string) => Promise<boolean>;
   signup: (name: string, email: string, password: string, role: "member" | "owner") => Promise<boolean>;
   logout: () => void;
@@ -19,6 +20,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
+  const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
     // Load from localStorage on mount
@@ -30,6 +32,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         console.error("Failed to parse stored user", e);
       }
     }
+    setHydrated(true);
   }, []);
 
   const login = async (email: string, password: string): Promise<boolean> => {
@@ -96,6 +99,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         user,
         isAuthenticated: !!user,
         role: user?.role || "visitor",
+        hydrated,
         login,
         signup,
         logout,

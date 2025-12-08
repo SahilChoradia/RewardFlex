@@ -1,5 +1,7 @@
 "use client";
 
+/* eslint-disable react/no-unescaped-entities */
+
 import { useState } from "react";
 import { RouteGuard } from "@/components/auth/route-guard";
 import { useQuery } from "@tanstack/react-query";
@@ -171,6 +173,8 @@ export default function OwnerMembersPage() {
     </RouteGuard>
   );
 }
+
+
 
 
 
