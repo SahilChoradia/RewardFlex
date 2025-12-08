@@ -1,6 +1,6 @@
  "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { RouteGuard } from "@/components/auth/route-guard";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -13,8 +13,11 @@ import { motion } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
 import { mockAPI } from "@/lib/mock-api";
 import { Loader2, Sparkles } from "lucide-react";
+import { saveDietToHistory, isDietDuplicate, getTodayDiet } from "@/lib/diet-storage";
+import { useRouter } from "next/navigation";
 
 export default function AIDietPage() {
+  const router = useRouter();
   const [formData, setFormData] = useState({
     age: "",
     weight: "",
@@ -29,26 +32,71 @@ export default function AIDietPage() {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
+  // Check if today's diet already exists
+  useEffect(() => {
+    const todayDiet = getTodayDiet();
+    if (todayDiet) {
+      setDietPlan({
+        breakfast: todayDiet.breakfast,
+        lunch: todayDiet.lunch,
+        snack: todayDiet.snack,
+        dinner: todayDiet.dinner,
+        macros: todayDiet.macros,
+      });
+    }
+  }, []);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
     try {
-      const plan = await mockAPI.generateDietPlan({
-        age: parseInt(formData.age),
-        weight: parseFloat(formData.weight),
-        height: parseFloat(formData.height),
-        gender: formData.gender,
-        activityLevel: formData.activityLevel,
-        goal: formData.goal,
-        dietPreference: formData.dietPreference,
-        allergies: formData.allergies,
-      });
-      setDietPlan(plan);
-      toast({
-        title: "Diet Plan Generated!",
-        description: "Your personalized diet plan is ready.",
-      });
+      let plan;
+      let attempts = 0;
+      const maxAttempts = 10; // Prevent infinite loop
+
+      // Generate diet and check for 7-day rotation
+      // Keep regenerating if duplicate found in last 7 days
+      do {
+        plan = await mockAPI.generateDietPlan({
+          age: parseInt(formData.age),
+          weight: parseFloat(formData.weight),
+          height: parseFloat(formData.height),
+          gender: formData.gender,
+          activityLevel: formData.activityLevel,
+          goal: formData.goal,
+          dietPreference: formData.dietPreference,
+          allergies: formData.allergies,
+        });
+        
+        attempts++;
+        
+        // Add date to plan for storage
+        const planWithDate = {
+          ...plan,
+          date: new Date().toISOString().split("T")[0],
+        };
+
+        // Check if duplicate in last 7 days
+        if (!isDietDuplicate(planWithDate) || attempts >= maxAttempts) {
+          // Save to history
+          saveDietToHistory(planWithDate);
+          setDietPlan(plan);
+          
+          toast({
+            title: "Diet Plan Generated!",
+            description: "Your personalized diet plan is ready.",
+          });
+          break;
+        }
+      } while (attempts < maxAttempts);
+
+      if (attempts >= maxAttempts) {
+        toast({
+          title: "Note",
+          description: "Generated diet plan (similar to recent plans after multiple attempts).",
+        });
+      }
     } catch (error) {
       toast({
         title: "Error",
@@ -241,9 +289,14 @@ export default function AIDietPage() {
                     <CardHeader>
                       <div className="flex items-center justify-between">
                         <CardTitle>Your Diet Plan</CardTitle>
-                        <Button variant="outline" size="sm" onClick={handleRegenerate}>
-                          Regenerate
-                        </Button>
+                        <div className="flex gap-2">
+                          <Button variant="outline" size="sm" onClick={handleRegenerate}>
+                            Regenerate
+                          </Button>
+                          <Button variant="default" size="sm" onClick={() => router.push("/tasks")}>
+                            Back to Tasks
+                          </Button>
+                        </div>
                       </div>
                     </CardHeader>
                     <CardContent className="space-y-6">

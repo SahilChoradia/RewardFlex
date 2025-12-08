@@ -4,11 +4,13 @@ import { useState, useEffect } from "react";
 import { RouteGuard } from "@/components/auth/route-guard";
 import { useAuth } from "@/contexts/auth-context";
 import { Task } from "@/types";
-import { TaskCard } from "@/components/reusable/task-card";
+import { TaskCardEnhanced } from "@/components/reusable/task-card-enhanced";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { motion } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
 import { CheckCircle2, Flame } from "lucide-react";
+import { getTodayDiet, hasTodayDiet } from "@/lib/diet-storage";
+import { useRouter } from "next/navigation";
 
 const initialTasks: Task[] = [
   {
@@ -44,8 +46,51 @@ const initialTasks: Task[] = [
 
 export default function TasksPage() {
   const [tasks, setTasks] = useState<Task[]>(initialTasks);
+  const [todayDiet, setTodayDiet] = useState<any>(null);
+  const [isWakeUpDisabled, setIsWakeUpDisabled] = useState(false);
   const { user, updateStreak } = useAuth();
   const { toast } = useToast();
+  const router = useRouter();
+
+  // Check wake-up time validation on mount and every minute
+  useEffect(() => {
+    const checkWakeUpTime = () => {
+      const now = new Date();
+      const currentHour = now.getHours();
+      setIsWakeUpDisabled(currentHour > 8);
+    };
+
+    checkWakeUpTime();
+    const interval = setInterval(checkWakeUpTime, 60000); // Check every minute
+    return () => clearInterval(interval);
+  }, []);
+
+  // Load today's diet from storage
+  useEffect(() => {
+    const diet = getTodayDiet();
+    if (diet) {
+      setTodayDiet(diet);
+    }
+  }, []);
+
+  // Listen for diet generation from AI Diet page
+  useEffect(() => {
+    const handleStorageChange = () => {
+      const diet = getTodayDiet();
+      if (diet) {
+        setTodayDiet(diet);
+      }
+    };
+
+    window.addEventListener("storage", handleStorageChange);
+    // Also check on focus (when returning from AI Diet page)
+    window.addEventListener("focus", handleStorageChange);
+
+    return () => {
+      window.removeEventListener("storage", handleStorageChange);
+      window.removeEventListener("focus", handleStorageChange);
+    };
+  }, []);
 
   // Load tasks from localStorage
   useEffect(() => {
@@ -76,25 +121,38 @@ export default function TasksPage() {
     localStorage.setItem("streakfitx_tasks_date", today);
   }, [tasks]);
 
-  const handleComplete = (taskId: string) => {
+  /**
+   * Handle task completion with validation
+   * All 4 tasks must pass their respective validations before completion
+   */
+  const handleComplete = (taskId: string, validationData?: any) => {
     setTasks((prev) =>
-      prev.map((task) => (task.id === taskId ? { ...task, completed: true } : task))
+      prev.map((task) => {
+        if (task.id === taskId) {
+          return { ...task, completed: true, ...validationData };
+        }
+        return task;
+      })
     );
   };
 
   const handleLinkSave = (taskId: string, link: string) => {
     setTasks((prev) =>
-      prev.map((task) => (task.id === taskId ? { ...task, link, completed: true } : task))
+      prev.map((task) => (task.id === taskId ? { ...task, link } : task))
     );
-    toast({
-      title: "Link saved!",
-      description: "Your exercise link has been saved.",
-    });
   };
 
-  // Check if all tasks are completed
+  /**
+   * Check if all tasks are completed with validations
+   * Only increase streak when ALL 4 validations passed:
+   * 1. Wakeup done before 8am
+   * 2. Bottle detected in image
+   * 3. Valid video link (YouTube/Drive)
+   * 4. AI Diet generated + confirmed + not repeat within 7 days
+   */
   useEffect(() => {
     const allCompleted = tasks.every((task) => task.completed);
+    
     if (allCompleted && tasks.length > 0) {
       const today = new Date().toDateString();
       const lastStreakDate = localStorage.getItem("streakfitx_streak_date");
@@ -103,6 +161,7 @@ export default function TasksPage() {
         const newStreak = (user?.streak || 0) + 1;
         updateStreak(newStreak);
         localStorage.setItem("streakfitx_streak_date", today);
+        
         toast({
           title: "🎉 Streak Increased!",
           description: `Your streak is now ${newStreak} days! Keep it up!`,
@@ -124,7 +183,9 @@ export default function TasksPage() {
           className="mb-8"
         >
           <h1 className="text-4xl font-bold mb-2">Daily Tasks</h1>
-          <p className="text-muted-foreground mb-6">Complete all tasks to maintain your streak!</p>
+          <p className="text-muted-foreground mb-6">
+            Complete all tasks with validations to maintain your streak!
+          </p>
 
           <Card className="mb-8">
             <CardHeader>
@@ -165,12 +226,18 @@ export default function TasksPage() {
 
           <div className="space-y-4">
             {tasks.map((task, index) => (
-              <TaskCard
+              <TaskCardEnhanced
                 key={task.id}
                 task={task}
                 onComplete={handleComplete}
                 onLinkSave={handleLinkSave}
                 delay={index * 0.1}
+                isWakeUpDisabled={isWakeUpDisabled}
+                todayDiet={todayDiet}
+                onDietGenerated={() => {
+                  const diet = getTodayDiet();
+                  if (diet) setTodayDiet(diet);
+                }}
               />
             ))}
           </div>
@@ -179,6 +246,3 @@ export default function TasksPage() {
     </RouteGuard>
   );
 }
-
-
-
