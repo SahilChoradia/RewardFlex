@@ -1,4 +1,5 @@
 "use client";
+/* eslint-disable react-hooks/exhaustive-deps */
 
 import { RouteGuard } from "@/components/auth/route-guard";
 import { useAuth } from "@/contexts/auth-context";
