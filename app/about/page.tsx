@@ -13,6 +13,7 @@ import { useState } from "react";
 import { Target, Trophy, Users, Heart, Mail, Send } from "lucide-react";
 
 export default function AboutPage() {
+  const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
   const [contactForm, setContactForm] = useState({
     name: "",
     email: "",
@@ -20,14 +21,35 @@ export default function AboutPage() {
   });
   const { toast } = useToast();
 
-  const handleContactSubmit = (e: React.FormEvent) => {
+  const handleContactSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // In a real app, this would call an API
-    toast({
-      title: "Message sent!",
-      description: "Thank you for contacting us. We'll get back to you soon.",
-    });
-    setContactForm({ name: "", email: "", message: "" });
+    try {
+      const res = await fetch(`${API}/contact/submit`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(contactForm),
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast({
+          title: "Query submitted.",
+          description: "Check your email for our response.",
+        });
+        setContactForm({ name: "", email: "", message: "" });
+      } else {
+        toast({
+          title: "Submission failed",
+          description: data.error || "Please try again.",
+          variant: "destructive",
+        });
+      }
+    } catch (err: any) {
+      toast({
+        title: "Network error",
+        description: err.message || "Unable to submit your query.",
+        variant: "destructive",
+      });
+    }
   };
 
   const features = [

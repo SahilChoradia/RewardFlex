@@ -1,4 +1,4 @@
-export type UserRole = "visitor" | "member" | "owner";
+export type UserRole = "visitor" | "member" | "owner" | "admin";
 
 export interface User {
   id: string;
@@ -8,6 +8,12 @@ export interface User {
   streak: number;
   rank: RankTier;
   subscriptionExpiry?: string;
+  subscription?: {
+    plan: string;
+    planName?: string;
+    startDate?: string;
+    endDate?: string;
+  } | null;
 }
 
 export type RankTier = "Bronze" | "Silver" | "Gold" | "Platinum";
@@ -35,7 +41,19 @@ export interface Event {
   description: string;
   date: string;
   discount?: number;
-  gymOwnerId: string;
+  gymOwnerId?: string;
+  image?: string;
+}
+
+export interface Offer {
+  _id?: string;
+  id?: string;
+  title: string;
+  description?: string;
+  discountPercent?: number;
+  validFrom?: string;
+  validUntil?: string;
+  active?: boolean;
 }
 
 export interface Trainer {
@@ -56,11 +74,15 @@ export interface MemberInsight {
 }
 
 export interface SubscriptionPlan {
-  id: string;
+  _id?: string;
+  id?: string;
   name: string;
+  slug: string;
   price: number;
-  duration: "monthly" | "annual";
+  currency: string;
+  durationDays: number;
   features: string[];
-  discount?: number;
+  discountLabel?: string | null;
+  active?: boolean;
 }
 

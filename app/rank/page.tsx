@@ -26,6 +26,7 @@ export default function RankPage() {
     { id: string; name: string; streak: number; rank: "Bronze" | "Silver" | "Gold" | "Platinum" }[]
   >([]);
   const [isLoadingBoard, setIsLoadingBoard] = useState(true);
+  const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
   const currentTier = rankTiers.find((tier) => tier.name === currentRank);
   const nextTier = rankTiers[rankTiers.findIndex((tier) => tier.name === currentRank) + 1];
@@ -43,23 +44,41 @@ export default function RankPage() {
     ? Math.max(0, nextTier.minDays - currentStreak)
     : 0;
 
-  // Mock fetch leaderboard (replace with real /api/leaderboard)
-  useEffect(() => {
-    const mock = [
-      { id: "1", name: "Sahil Mehta", streak: 84, rank: "Gold" as const },
-      { id: "2", name: "Rohan Gupta", streak: 56, rank: "Silver" as const },
-      { id: "3", name: "Abhishek Rao", streak: 32, rank: "Bronze" as const },
-      { id: "4", name: "You", streak: currentStreak, rank: currentRank as any },
-    ];
-    const sorted = mock.sort((a, b) => b.streak - a.streak);
-    setLeaderboard(sorted);
-    setIsLoadingBoard(false);
-  }, [currentRank, currentStreak]);
+  const fetchLeaderboard = async () => {
+    setIsLoadingBoard(true);
+    try {
+      const token = localStorage.getItem("streakfitx_token") || localStorage.getItem("token");
+      const res = await fetch(`${API_BASE}/leaderboard`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Failed to load leaderboard");
+      }
+      const mapped =
+        data.leaderboard?.map((u: any) => ({
+          id: u._id || u.id,
+          name: u.name || "Member",
+          streak: u.streak || 0,
+          rank: (u.rank || "Bronze") as "Bronze" | "Silver" | "Gold" | "Platinum",
+        })) || [];
+      const sorted = [...mapped].sort((a, b) => b.streak - a.streak);
+      setLeaderboard(sorted);
+    } catch (error) {
+      console.error("Leaderboard load error:", error);
+    } finally {
+      setIsLoadingBoard(false);
+    }
+  };
 
-  const highestStreak = useMemo(
-    () => Math.max(...leaderboard.map((u) => u.streak), 1),
-    [leaderboard]
-  );
+  useEffect(() => {
+    fetchLeaderboard();
+  }, []);
+
+  const highestStreak = useMemo(() => {
+    if (!leaderboard.length) return 1;
+    return Math.max(...leaderboard.map((u) => u.streak), 1);
+  }, [leaderboard]);
 
   const progressFor = (streak: number) => Math.min(100, Math.round((streak / highestStreak) * 100));
 
@@ -183,7 +202,7 @@ export default function RankPage() {
           <div className="mt-12">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-2xl font-bold">Leaderboard</h2>
-              <Button variant="outline" size="sm" onClick={() => window.location.reload()}>
+              <Button variant="outline" size="sm" onClick={fetchLeaderboard}>
                 Refresh
               </Button>
             </div>

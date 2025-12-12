@@ -1,6 +1,6 @@
  "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { RouteGuard } from "@/components/auth/route-guard";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,9 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import { motion } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
-import { mockAPI } from "@/lib/mock-api";
 import { Loader2, Sparkles } from "lucide-react";
-import { saveDietToHistory, isDietDuplicate, getTodayDiet } from "@/lib/diet-storage";
 import { useRouter } from "next/navigation";
 
 export default function AIDietPage() {
@@ -28,26 +26,15 @@ export default function AIDietPage() {
     dietPreference: "",
     allergies: "",
   });
-  const [dietPlan, setDietPlan] = useState<any>(null);
+  const [dietPlan, setDietPlan] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+  const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
-  // Check if today's diet already exists
-  useEffect(() => {
-    const todayDiet = getTodayDiet();
-    if (todayDiet) {
-      setDietPlan({
-        breakfast: todayDiet.breakfast,
-        lunch: todayDiet.lunch,
-        snack: todayDiet.snack,
-        dinner: todayDiet.dinner,
-        macros: todayDiet.macros,
-      });
-    }
-  }, []);
-
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleGenerateDiet = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsLoading(true);
+    setDietPlan(null);
 
     // Strict validation
     const ageNum = Number(formData.age);
@@ -57,102 +44,147 @@ export default function AIDietPage() {
     if (!ageNum || !weightNum || !heightNum) {
       toast({
         title: "Invalid input",
-        description: "Invalid input. All values must be greater than zero.",
+        description: "All values must be greater than zero.",
         variant: "destructive",
       });
+      setIsLoading(false);
       return;
     }
 
     if (ageNum < 16) {
       toast({
         title: "Invalid age",
-        description: "Minimum age required is 16",
+        description: "Age must be at least 16 years.",
         variant: "destructive",
       });
+      setIsLoading(false);
       return;
     }
 
     if (weightNum <= 30) {
       toast({
         title: "Invalid weight",
-        description: "Weight must be above 30kg",
+        description: "Weight must be greater than 30 kg.",
         variant: "destructive",
       });
+      setIsLoading(false);
       return;
     }
 
     if (heightNum <= 100) {
       toast({
         title: "Invalid height",
-        description: "Height must be above 100cm",
+        description: "Height must be above 100 cm.",
         variant: "destructive",
       });
+      setIsLoading(false);
       return;
     }
 
-    setIsLoading(true);
-
     try {
-      let plan;
-      let attempts = 0;
-      const maxAttempts = 10; // Prevent infinite loop
-
-      // Generate diet and check for 7-day rotation
-      // Keep regenerating if duplicate found in last 7 days
-      do {
-        plan = await mockAPI.generateDietPlan({
-          age: parseInt(formData.age),
-          weight: parseFloat(formData.weight),
-          height: parseFloat(formData.height),
+      const res = await fetch(`${API_BASE}/ai/diet`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          age: ageNum,
+          weight: weightNum,
+          height: heightNum,
           gender: formData.gender,
-          activityLevel: formData.activityLevel,
           goal: formData.goal,
-          dietPreference: formData.dietPreference,
-          allergies: formData.allergies,
-        });
-        
-        attempts++;
-        
-        // Add date to plan for storage
-        const planWithDate = {
-          ...plan,
-          date: new Date().toISOString().split("T")[0],
-        };
+          activityLevel: formData.activityLevel,
+          foodPreference: formData.dietPreference === "veg" ? "Vegetarian" : formData.dietPreference === "vegan" ? "Vegan" : "Non-Vegetarian",
+          allergies: formData.allergies || "",
+        }),
+      });
 
-        // Check if duplicate in last 7 days
-        if (!isDietDuplicate(planWithDate) || attempts >= maxAttempts) {
-          // Save to history
-          saveDietToHistory(planWithDate);
-          setDietPlan(plan);
-          
-          toast({
-            title: "Diet Plan Generated!",
-            description: "Your personalized diet plan is ready.",
-          });
-          break;
-        }
-      } while (attempts < maxAttempts);
+      const data = await res.json();
+      setIsLoading(false);
 
-      if (attempts >= maxAttempts) {
+      if (!data.success) {
         toast({
-          title: "Note",
-          description: "Generated diet plan (similar to recent plans after multiple attempts).",
+          title: "Error",
+          description: data.error || "AI diet generation failed",
+          variant: "destructive",
         });
+        return;
       }
-    } catch (error) {
+
+      setDietPlan(data.diet);
       toast({
-        title: "Error",
-        description: "Failed to generate diet plan. Please try again.",
+        title: "Diet Plan Generated!",
+        description: "Your personalized AI diet plan is ready.",
+      });
+    } catch (err: any) {
+      setIsLoading(false);
+      console.error("Diet error:", err);
+      toast({
+        title: "Network Error",
+        description: "Network error — AI request failed. Please check your connection.",
         variant: "destructive",
       });
-    } finally {
-      setIsLoading(false);
     }
   };
 
-  const handleRegenerate = () => {
+  const handleRegenerate = async () => {
     setDietPlan(null);
-    handleSubmit(new Event("submit") as any);
+    setIsLoading(true);
+    
+    const ageNum = Number(formData.age);
+    const weightNum = Number(formData.weight);
+    const heightNum = Number(formData.height);
+
+    if (!ageNum || !weightNum || !heightNum || ageNum < 16 || weightNum <= 30 || heightNum <= 100) {
+      toast({
+        title: "Invalid Input",
+        description: "Please fill all fields with valid values before regenerating.",
+        variant: "destructive",
+      });
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      const res = await fetch(`${API_BASE}/ai/diet`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          age: ageNum,
+          weight: weightNum,
+          height: heightNum,
+          gender: formData.gender,
+          goal: formData.goal,
+          activityLevel: formData.activityLevel,
+          foodPreference: formData.dietPreference === "veg" ? "Vegetarian" : formData.dietPreference === "vegan" ? "Vegan" : "Non-Vegetarian",
+          allergies: formData.allergies || "",
+        }),
+      });
+
+      const data = await res.json();
+      setIsLoading(false);
+
+      if (!data.success) {
+        toast({
+          title: "Error",
+          description: data.error || "AI diet generation failed",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      setDietPlan(data.diet);
+      toast({
+        title: "Diet Plan Regenerated!",
+        description: "A new personalized AI diet plan has been generated.",
+      });
+    } catch (err: any) {
+      setIsLoading(false);
+      console.error("Diet error:", err);
+      toast({
+        title: "Network Error",
+        description: "Network error — AI request failed. Please check your connection.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -178,7 +210,7 @@ export default function AIDietPage() {
                 <CardDescription>Fill in your details to generate a personalized diet plan</CardDescription>
               </CardHeader>
               <CardContent>
-                <form onSubmit={handleSubmit} className="space-y-4">
+                <form onSubmit={handleGenerateDiet} className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="age">Age</Label>
@@ -330,7 +362,7 @@ export default function AIDietPage() {
                   <Card>
                     <CardHeader>
                       <div className="flex items-center justify-between">
-                        <CardTitle>Your Diet Plan</CardTitle>
+                        <CardTitle>Your AI-Generated Diet Plan</CardTitle>
                         <div className="flex gap-2">
                           <Button variant="outline" size="sm" onClick={handleRegenerate}>
                             Regenerate
@@ -341,39 +373,9 @@ export default function AIDietPage() {
                         </div>
                       </div>
                     </CardHeader>
-                    <CardContent className="space-y-6">
-                      <div>
-                        <h3 className="font-semibold mb-2">Breakfast</h3>
-                        <p className="text-muted-foreground">{dietPlan.breakfast}</p>
-                      </div>
-                      <div>
-                        <h3 className="font-semibold mb-2">Lunch</h3>
-                        <p className="text-muted-foreground">{dietPlan.lunch}</p>
-                      </div>
-                      <div>
-                        <h3 className="font-semibold mb-2">Snack</h3>
-                        <p className="text-muted-foreground">{dietPlan.snack}</p>
-                      </div>
-                      <div>
-                        <h3 className="font-semibold mb-2">Dinner</h3>
-                        <p className="text-muted-foreground">{dietPlan.dinner}</p>
-                      </div>
-                      <div className="pt-4 border-t">
-                        <h3 className="font-semibold mb-3">Daily Macros</h3>
-                        <div className="grid grid-cols-3 gap-4">
-                          <div>
-                            <div className="text-sm text-muted-foreground">Protein</div>
-                            <div className="text-2xl font-bold">{dietPlan.macros.protein}g</div>
-                          </div>
-                          <div>
-                            <div className="text-sm text-muted-foreground">Carbs</div>
-                            <div className="text-2xl font-bold">{dietPlan.macros.carbs}g</div>
-                          </div>
-                          <div>
-                            <div className="text-sm text-muted-foreground">Fats</div>
-                            <div className="text-2xl font-bold">{dietPlan.macros.fats}g</div>
-                          </div>
-                        </div>
+                    <CardContent>
+                      <div className="prose prose-sm max-w-none whitespace-pre-wrap text-muted-foreground">
+                        {dietPlan}
                       </div>
                     </CardContent>
                   </Card>

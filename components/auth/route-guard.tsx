@@ -17,18 +17,19 @@ interface RouteGuardProps {
 }
 
 export function RouteGuard({ children, allowedRoles, redirectTo = "/login" }: RouteGuardProps) {
-  const { isAuthenticated, role, hydrated } = useAuth();
+  const { isAuthenticated, role, hydrated, loading } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
-    if (!hydrated) return;
+    // DO NOT check auth until loading === false
+    if (loading || !hydrated) return;
     if (!isAuthenticated || !allowedRoles.includes(role)) {
       router.push(redirectTo);
     }
-  }, [isAuthenticated, role, allowedRoles, redirectTo, router, hydrated]);
+  }, [isAuthenticated, role, allowedRoles, redirectTo, router, hydrated, loading]);
 
-  // Wait for hydration before deciding access
-  if (!hydrated) {
+  // Wait for loading and hydration before deciding access
+  if (loading || !hydrated) {
     return null;
   }
 

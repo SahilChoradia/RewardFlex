@@ -2,57 +2,27 @@
 
 /* eslint-disable react/no-unescaped-entities */
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { RouteGuard } from "@/components/auth/route-guard";
-import { useAuth } from "@/contexts/auth-context";
 import { Task } from "@/types";
 import { TaskCardEnhanced } from "@/components/reusable/task-card-enhanced";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { motion } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
-import { CheckCircle2, Flame } from "lucide-react";
+import { CheckCircle2 } from "lucide-react";
 import { getTodayDiet } from "@/lib/diet-storage";
 import { useRouter } from "next/navigation";
-
-const initialTasks: Task[] = [
-  {
-    id: "1",
-    title: "Wake Up",
-    description: "Start your day right with an early wake-up",
-    type: "wakeup",
-    completed: false,
-  },
-  {
-    id: "2",
-    title: "Drink Water",
-    description: "Stay hydrated! Drink at least 8 glasses of water",
-    type: "water",
-    completed: false,
-  },
-  {
-    id: "3",
-    title: "Exercise / Pushups",
-    description: "Complete your daily workout routine",
-    type: "exercise",
-    completed: false,
-    link: "",
-  },
-  {
-    id: "4",
-    title: "Diet Followed",
-    description: "Stick to your meal plan for the day",
-    type: "diet",
-    completed: false,
-  },
-];
+import { useAuth } from "@/contexts/auth-context";
 
 export default function TasksPage() {
-  const [tasks, setTasks] = useState<Task[]>(initialTasks);
+  const { loading: authLoading, hydrated } = useAuth();
+  const [tasks, setTasks] = useState<Task[]>([]);
   const [todayDiet, setTodayDiet] = useState<any>(null);
   const [isWakeUpDisabled, setIsWakeUpDisabled] = useState(false);
-  const { user, updateStreak } = useAuth();
   const { toast } = useToast();
   const router = useRouter();
+  const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+  const [loading, setLoading] = useState(true);
 
   // Check wake-up time validation on mount and every minute
   useEffect(() => {
@@ -94,86 +64,156 @@ export default function TasksPage() {
     };
   }, []);
 
-  // Load tasks from localStorage
-  useEffect(() => {
-    const stored = localStorage.getItem("streakfitx_tasks");
-    if (stored) {
-      try {
-        const storedTasks = JSON.parse(stored);
-        // Check if tasks are for today
-        const today = new Date().toDateString();
-        const lastDate = localStorage.getItem("streakfitx_tasks_date");
-        if (lastDate === today) {
-          setTasks(storedTasks);
-        } else {
-          // Reset tasks for new day
-          localStorage.setItem("streakfitx_tasks", JSON.stringify(initialTasks));
-          localStorage.setItem("streakfitx_tasks_date", today);
-        }
-      } catch (e) {
-        console.error("Failed to load tasks", e);
-      }
-    }
+  const mapTaskDoc = useCallback((doc: any): Task[] => {
+    return [
+      {
+        id: "wakeup",
+        title: "Wake Up",
+        description: "Start your day right with an early wake-up",
+        type: "wakeup",
+        completed: !!doc.wakeupCompleted,
+      },
+      {
+        id: "water",
+        title: "Drink Water",
+        description: "Stay hydrated! Drink at least 8 glasses of water",
+        type: "water",
+        completed: !!doc.drinkWaterVerified,
+      },
+      {
+        id: "exercise",
+        title: "Exercise / Pushups",
+        description: "Complete your daily workout routine",
+        type: "exercise",
+        completed: !!doc.exerciseCompleted,
+        link: doc.exerciseLink || "",
+      },
+      {
+        id: "diet",
+        title: "Diet Followed",
+        description: "Stick to your meal plan for the day",
+        type: "diet",
+        completed: !!doc.dietCompleted,
+      },
+    ];
   }, []);
 
-  // Save tasks to localStorage
+  const fetchTodayTask = useCallback(async () => {
+    // DO NOT check auth until loading === false
+    if (authLoading || !hydrated) return;
+    try {
+      setLoading(true);
+      const token = localStorage.getItem("streakfitx_token") || localStorage.getItem("token");
+      if (!token) {
+        router.push("/login");
+        return;
+      }
+      const res = await fetch(`${API_BASE}/tasks/today`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Failed to load tasks");
+      }
+      setTasks(mapTaskDoc(data.task));
+    } catch (error: any) {
+      console.error("Load tasks error:", error);
+      toast({ title: "Error", description: error?.message || "Failed to load tasks", variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  }, [API_BASE, mapTaskDoc, router, toast, authLoading, hydrated]);
+
   useEffect(() => {
-    localStorage.setItem("streakfitx_tasks", JSON.stringify(tasks));
-    const today = new Date().toDateString();
-    localStorage.setItem("streakfitx_tasks_date", today);
-  }, [tasks]);
+    fetchTodayTask();
+  }, [fetchTodayTask]);
 
   /**
    * Handle task completion with validation
-   * All 4 tasks must pass their respective validations before completion
+   * Calls backend endpoints and updates task state from server response
    */
-  const handleComplete = (taskId: string, validationData?: any) => {
-    setTasks((prev) =>
-      prev.map((task) => {
-        if (task.id === taskId) {
-          return { ...task, completed: true, ...validationData };
-        }
-        return task;
-      })
-    );
-  };
-
-  const handleLinkSave = (taskId: string, link: string) => {
-    setTasks((prev) =>
-      prev.map((task) => (task.id === taskId ? { ...task, link } : task))
-    );
-  };
-
-  /**
-   * Check if all tasks are completed with validations
-   * Only increase streak when ALL 4 validations passed:
-   * 1. Wakeup done before 8am
-   * 2. Bottle detected in image
-   * 3. Valid video link (YouTube/Drive)
-   * 4. AI Diet generated + confirmed + not repeat within 7 days
-   */
-  useEffect(() => {
-    const allCompleted = tasks.every((task) => task.completed);
-    
-    if (allCompleted && tasks.length > 0) {
-      const today = new Date().toDateString();
-      const lastStreakDate = localStorage.getItem("streakfitx_streak_date");
-      
-      if (lastStreakDate !== today) {
-        const newStreak = (user?.streak || 0) + 1;
-        updateStreak(newStreak);
-        localStorage.setItem("streakfitx_streak_date", today);
-        
-        toast({
-          title: "🎉 Streak Increased!",
-          description: `Your streak is now ${newStreak} days! Keep it up!`,
-        });
+  const handleComplete = async (taskId: string, validationData?: any) => {
+    try {
+      const token = localStorage.getItem("streakfitx_token") || localStorage.getItem("token");
+      if (!token) {
+        toast({ title: "Not authenticated", description: "Please login again.", variant: "destructive" });
+        return;
       }
+
+      const task = tasks.find((t) => t.id === taskId);
+      if (!task) return;
+
+      let res;
+      let data;
+
+      if (task.type === "wakeup") {
+        res = await fetch(`${API_BASE}/tasks/wakeup`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        data = await res.json();
+      } else if (task.type === "water") {
+        if (!validationData?.imageBlob) {
+          toast({ title: "Photo required", description: "Please capture a water photo first.", variant: "destructive" });
+          return;
+        }
+        const formData = new FormData();
+        formData.append("photo", validationData.imageBlob, "water-task.png");
+        res = await fetch(`${API_BASE}/tasks/drink-water`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          body: formData,
+        });
+        data = await res.json();
+      } else if (task.type === "exercise") {
+        if (!validationData?.link) {
+          toast({ title: "Link required", description: "Enter a valid exercise link.", variant: "destructive" });
+          return;
+        }
+        res = await fetch(`${API_BASE}/tasks/exercise`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ link: validationData.link }),
+        });
+        data = await res.json();
+      } else if (task.type === "diet") {
+        res = await fetch(`${API_BASE}/tasks/diet-complete`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        data = await res.json();
+      }
+
+      if (!res?.ok || !data?.success) {
+        throw new Error(data?.error || "Task update failed");
+      }
+
+      if (data.task) {
+        setTasks(mapTaskDoc(data.task));
+      }
+
+      toast({ title: "Task updated", description: "Progress saved successfully." });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error?.message || "Could not update task.",
+        variant: "destructive",
+      });
     }
-  }, [tasks, user, updateStreak, toast]);
+  };
+
+  const handleLinkSave = (_taskId: string, _link: string) => {
+    // handled via backend in handleComplete
+  };
 
   const completedCount = tasks.filter((t) => t.completed).length;
   const totalCount = tasks.length;
+  const progressPercent = totalCount ? Math.round((completedCount / totalCount) * 100) : 0;
 
   return (
     <RouteGuard allowedRoles={["member"]}>
@@ -193,7 +233,7 @@ export default function TasksPage() {
             <CardHeader>
               <CardTitle>Today's Progress</CardTitle>
               <CardDescription>
-                {completedCount}/{totalCount} tasks completed
+                {completedCount}/{totalCount || 4} tasks completed
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -201,14 +241,14 @@ export default function TasksPage() {
                 <div className="flex justify-between text-sm">
                   <span>Progress</span>
                   <span className="font-semibold">
-                    {Math.round((completedCount / totalCount) * 100)}%
+                    {progressPercent}%
                   </span>
                 </div>
                 <div className="w-full bg-secondary rounded-full h-3">
                   <motion.div
                     className="bg-primary h-3 rounded-full"
                     initial={{ width: 0 }}
-                    animate={{ width: `${(completedCount / totalCount) * 100}%` }}
+                    animate={{ width: `${progressPercent}%` }}
                     transition={{ duration: 0.5 }}
                   />
                 </div>
@@ -226,23 +266,27 @@ export default function TasksPage() {
             </CardContent>
           </Card>
 
-          <div className="space-y-4">
-            {tasks.map((task, index) => (
-              <TaskCardEnhanced
-                key={task.id}
-                task={task}
-                onComplete={handleComplete}
-                onLinkSave={handleLinkSave}
-                delay={index * 0.1}
-                isWakeUpDisabled={isWakeUpDisabled}
-                todayDiet={todayDiet}
-                onDietGenerated={() => {
-                  const diet = getTodayDiet();
-                  if (diet) setTodayDiet(diet);
-                }}
-              />
-            ))}
-          </div>
+          {loading ? (
+            <p className="text-muted-foreground">Loading tasks...</p>
+          ) : (
+            <div className="space-y-4">
+              {tasks.map((task, index) => (
+                <TaskCardEnhanced
+                  key={task.id}
+                  task={task}
+                  onComplete={handleComplete}
+                  onLinkSave={handleLinkSave}
+                  delay={index * 0.1}
+                  isWakeUpDisabled={isWakeUpDisabled}
+                  todayDiet={todayDiet}
+                  onDietGenerated={() => {
+                    const diet = getTodayDiet();
+                    if (diet) setTodayDiet(diet);
+                  }}
+                />
+              ))}
+            </div>
+          )}
         </motion.div>
       </div>
     </RouteGuard>

@@ -18,7 +18,7 @@ import { User, LogOut, Dumbbell, Menu, X } from "lucide-react";
 
 export function Navbar() {
   const pathname = usePathname();
-  const { isAuthenticated, role, user, logout } = useAuth();
+  const { isAuthenticated, role, user, logout, hydrated, loading } = useAuth();
   const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -27,21 +27,14 @@ export function Navbar() {
     router.push("/");
   };
 
-  const navLinks = [
-    ...(!isAuthenticated ? [{ href: "/", label: "Home" }] : []),
-    ...(isAuthenticated ? [{ href: "/member/dashboard", label: "Dashboard" }] : []),
-    { href: "/about", label: "About" },
-    ...(isAuthenticated
-      ? [
-          { href: "/tasks", label: "Tasks" },
-          { href: "/subscription", label: "Subscription" },
-          { href: "/rank", label: "Rank" },
-          { href: "/rewards", label: "Rewards" },
-          { href: "/events", label: "Events" },
-          { href: "/ai-diet", label: "AI Diet" },
-        ]
-      : []),
-  ];
+  // Wait for loading and hydration to prevent SSR/client mismatch
+  const navLinks = !loading && hydrated
+    ? [
+        ...(isAuthenticated 
+          ? [{ href: role === "admin" ? "/admin/dashboard" : "/member/dashboard", label: "Dashboard" }] 
+          : []),
+      ]
+    : [];
 
   const mobileLinks = navLinks;
 
@@ -87,7 +80,13 @@ export function Navbar() {
 
         {/* Desktop auth buttons */}
         <div className="hidden md:flex items-center space-x-4">
-          {isAuthenticated ? (
+          {loading || !hydrated ? (
+            <>
+              <Button variant="ghost" disabled>
+                <span className="opacity-50">Loading...</span>
+              </Button>
+            </>
+          ) : isAuthenticated ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="flex items-center space-x-2">
@@ -151,7 +150,11 @@ export function Navbar() {
               ))}
 
               <div className="pt-2 flex gap-2">
-                {isAuthenticated ? (
+                {loading || !hydrated ? (
+                  <Button variant="outline" className="flex-1" disabled>
+                    Loading...
+                  </Button>
+                ) : isAuthenticated ? (
                   <Button variant="outline" className="flex-1" onClick={handleLogout}>
                     Logout
                   </Button>

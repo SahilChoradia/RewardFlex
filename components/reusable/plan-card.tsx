@@ -15,6 +15,8 @@ interface PlanCardProps {
 }
 
 export function PlanCard({ plan, isCurrent, onSubscribe, delay = 0 }: PlanCardProps) {
+  const planId = plan._id || plan.id;
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -30,22 +32,28 @@ export function PlanCard({ plan, isCurrent, onSubscribe, delay = 0 }: PlanCardPr
             <Badge className="bg-primary">Current Plan</Badge>
           </div>
         )}
-        {plan.discount && (
+        {plan.discountLabel && (
           <div className="absolute -top-3 right-4">
-            <Badge variant="secondary">{plan.discount}% OFF</Badge>
+            <Badge variant="secondary">{plan.discountLabel}</Badge>
           </div>
         )}
         <CardHeader>
           <CardTitle className="text-2xl">{plan.name}</CardTitle>
           <div className="mt-4">
-            <span className="text-4xl font-bold">₹{plan.price}</span>
-            <span className="text-muted-foreground">/{plan.duration === "monthly" ? "mo" : "yr"}</span>
+            <span className="text-4xl font-bold">
+              {plan.currency === "INR" ? "₹" : `${plan.currency} `}
+              {plan.price}
+            </span>
+            <span className="text-muted-foreground">
+              /
+              {plan.durationDays === 30
+                ? "mo"
+                : plan.durationDays >= 365
+                ? "yr"
+                : `${plan.durationDays}d`}
+            </span>
           </div>
-          {plan.duration === "annual" && (
-            <CardDescription className="mt-2">
-              Save ₹{(plan.price / 12).toFixed(0)} per month
-            </CardDescription>
-          )}
+          {plan.discountLabel && <CardDescription className="mt-2">{plan.discountLabel}</CardDescription>}
         </CardHeader>
         <CardContent>
           <ul className="space-y-3">
@@ -63,7 +71,7 @@ export function PlanCard({ plan, isCurrent, onSubscribe, delay = 0 }: PlanCardPr
               Current Plan
             </Button>
           ) : (
-            <Button onClick={() => onSubscribe?.(plan.id)} className="w-full">
+            <Button disabled={!planId} onClick={() => planId && onSubscribe?.(planId)} className="w-full">
               Subscribe
             </Button>
           )}

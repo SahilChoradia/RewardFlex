@@ -1,8 +1,6 @@
 "use client";
 
 import { useAuth } from "@/contexts/auth-context";
-import { useQuery } from "@tanstack/react-query";
-import { mockAPI } from "@/lib/mock-api";
 import { EventCard } from "@/components/reusable/event-card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -18,18 +16,54 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Card, CardContent } from "@/components/ui/card";
-import { useState } from "react";
-import { Event } from "@/types";
+import { useEffect, useState } from "react";
+import { Event, Offer } from "@/types";
 
 export default function EventsPage() {
   const { role } = useAuth();
   const { toast } = useToast();
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
+  const [events, setEvents] = useState<Event[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [offers, setOffers] = useState<Offer[]>([]);
+  const [offersLoading, setOffersLoading] = useState(true);
+  const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
-  const { data: events, isLoading } = useQuery({
-    queryKey: ["events"],
-    queryFn: () => mockAPI.fetchEvents(),
-  });
+  useEffect(() => {
+    const loadEvents = async () => {
+      try {
+        const res = await fetch(`${API_BASE}/events/all`);
+        const data = await res.json();
+        if (res.ok && data.success) {
+          const mapped: Event[] = (data.events || []).map((e: any) => ({
+            id: e._id || e.id,
+            title: e.title,
+            description: e.description || e.fullDescription || e.shortDescription,
+            date: e.date,
+            discount: e.discountPercent,
+            gymOwnerId: e.createdBy || "admin",
+            image: e.image,
+          }));
+          setEvents(mapped);
+        }
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    const loadOffers = async () => {
+      try {
+        const res = await fetch(`${API_BASE}/offers/all`);
+        const data = await res.json();
+        if (res.ok && data.success) {
+          setOffers(data.offers || []);
+        }
+      } finally {
+        setOffersLoading(false);
+      }
+    };
+    loadEvents();
+    loadOffers();
+  }, [API_BASE]);
 
   const handleKnowMore = (event: Event) => {
     setSelectedEvent(event);
@@ -93,6 +127,53 @@ export default function EventsPage() {
           </motion.div>
         )}
       </motion.div>
+
+      <div className="mt-12">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-2xl font-semibold">Offers</h2>
+          <span className="text-sm text-muted-foreground">Latest deals for members</span>
+        </div>
+        {offersLoading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {[1, 2].map((i) => (
+              <Skeleton key={i} className="h-32" />
+            ))}
+          </div>
+        ) : offers && offers.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {offers.map((offer) => (
+              <Card key={offer._id} className="border-primary/40">
+                <CardContent className="p-4 space-y-2">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <h3 className="text-lg font-semibold">{offer.title}</h3>
+                      {typeof offer.discountPercent === "number" && offer.discountPercent > 0 && (
+                        <p className="text-primary font-medium">{offer.discountPercent}% OFF</p>
+                      )}
+                    </div>
+                  </div>
+                  {offer.description && (
+                    <p className="text-sm text-muted-foreground">{offer.description}</p>
+                  )}
+                  {(offer.validFrom || offer.validUntil) && (
+                    <p className="text-xs text-muted-foreground">
+                      Valid{" "}
+                      {offer.validFrom ? `from ${new Date(offer.validFrom).toLocaleDateString()}` : ""}{" "}
+                      {offer.validUntil ? `until ${new Date(offer.validUntil).toLocaleDateString()}` : ""}
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        ) : (
+          <Card>
+            <CardContent className="py-10 text-center text-muted-foreground">
+              No offers right now. Check back soon!
+            </CardContent>
+          </Card>
+        )}
+      </div>
 
       <Dialog open={!!selectedEvent} onOpenChange={(open) => !open && setSelectedEvent(null)}>
         <DialogContent>
