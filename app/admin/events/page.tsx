@@ -20,6 +20,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Pencil, Trash2, Plus } from "lucide-react";
+import API_BASE from "@/lib/api";
 
 interface AdminEvent {
   _id: string;
@@ -51,7 +52,6 @@ export default function AdminEventsPage() {
     image: "",
     discountPercent: 0,
   });
-  const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
   useEffect(() => {
     if (authLoading || !hydrated) return;

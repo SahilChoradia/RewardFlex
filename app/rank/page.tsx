@@ -11,6 +11,7 @@ import { Trophy, TrendingUp, Award, Flame } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import API_BASE from "@/lib/api";
 
 const rankTiers = [
   { name: "Bronze", minDays: 1, maxDays: 7, color: "from-amber-600 to-amber-800" },
@@ -27,7 +28,6 @@ export default function RankPage() {
     { id: string; name: string; streak: number; rank: "Bronze" | "Silver" | "Gold" | "Platinum" }[]
   >([]);
   const [isLoadingBoard, setIsLoadingBoard] = useState(true);
-  const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
   const currentTier = rankTiers.find((tier) => tier.name === currentRank);
   const nextTier = rankTiers[rankTiers.findIndex((tier) => tier.name === currentRank) + 1];

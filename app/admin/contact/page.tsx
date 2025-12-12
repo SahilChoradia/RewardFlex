@@ -2,8 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-
-const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+import API_BASE from "@/lib/api";
 
 interface ContactMessage {
   _id: string;
@@ -20,7 +19,7 @@ export default function ContactAdmin() {
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (!token) return;
-    fetch(`${API}/contact/admin/all`, {
+    fetch(`${API_BASE}/contact/admin/all`, {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then((r) => r.json())

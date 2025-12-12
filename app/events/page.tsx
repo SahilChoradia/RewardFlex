@@ -18,6 +18,7 @@ import {
 import { Card, CardContent } from "@/components/ui/card";
 import { useEffect, useState } from "react";
 import { Event, Offer } from "@/types";
+import API_BASE from "@/lib/api";
 
 export default function EventsPage() {
   const { role } = useAuth();
@@ -27,7 +28,6 @@ export default function EventsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [offers, setOffers] = useState<Offer[]>([]);
   const [offersLoading, setOffersLoading] = useState(true);
-  const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
   useEffect(() => {
     const loadEvents = async () => {

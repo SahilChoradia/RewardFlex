@@ -11,11 +11,11 @@ import Link from "next/link";
 import { useAuth } from "@/contexts/auth-context";
 import { Badge } from "@/components/ui/badge";
 import { Users, Calendar, Gift, CreditCard, ListTodo, Trophy, Droplet } from "lucide-react";
+import API_BASE from "@/lib/api";
 
 export default function AdminDashboardPage() {
   const { user, hydrated, loading } = useAuth();
   const router = useRouter();
-  const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
   const [stats, setStats] = useState({
     events: 0,
     offers: 0,

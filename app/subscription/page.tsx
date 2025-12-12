@@ -11,19 +11,19 @@ import { useToast } from "@/hooks/use-toast";
 import { CheckCircle2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { SubscriptionPlan } from "@/types";
+import API_BASE from "@/lib/api";
 
 export default function SubscriptionPage() {
   const { isAuthenticated, user, refreshUser } = useAuth();
   const { toast } = useToast();
   const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
   const [loading, setLoading] = useState(true);
-  const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
   useEffect(() => {
     const fetchPlans = async () => {
       setLoading(true);
       try {
-        const res = await fetch(`${API}/subscription/plans`);
+        const res = await fetch(`${API_BASE}/subscription/plans`);
         const data = await res.json();
         if (res.ok && data.success) {
           setPlans(data.plans || []);
@@ -46,7 +46,7 @@ export default function SubscriptionPage() {
       }
     };
     fetchPlans();
-  }, [API, toast]);
+  }, [API_BASE, toast]);
 
   const handleSubscribe = (planId: string) => {
     if (!isAuthenticated) {
@@ -62,7 +62,7 @@ export default function SubscriptionPage() {
       return;
     }
 
-    fetch(`${API}/subscription/purchase`, {
+    fetch(`${API_BASE}/subscription/purchase`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

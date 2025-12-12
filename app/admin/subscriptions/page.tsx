@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/auth-context";
 import { useToast } from "@/hooks/use-toast";
+import API_BASE from "@/lib/api";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
@@ -51,7 +52,6 @@ export default function AdminSubscriptionsPage() {
     discountLabel: "",
     active: true,
   });
-  const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
   useEffect(() => {
     if (authLoading || !hydrated) return;

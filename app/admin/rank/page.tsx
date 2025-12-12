@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/auth-context";
 import { useToast } from "@/hooks/use-toast";
+import API_BASE from "@/lib/api";
 import { Progress } from "@/components/ui/progress";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { RankBadge } from "@/components/reusable/rank-badge";
@@ -50,7 +51,6 @@ export default function AdminRankPage() {
     streak: 0,
     rank: "Bronze" as "Bronze" | "Silver" | "Gold" | "Platinum",
   });
-  const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
   useEffect(() => {
     if (authLoading || !hydrated) return;

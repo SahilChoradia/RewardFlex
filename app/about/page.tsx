@@ -11,9 +11,9 @@ import { motion } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
 import { Target, Trophy, Users, Heart, Mail, Send } from "lucide-react";
+import API_BASE from "@/lib/api";
 
 export default function AboutPage() {
-  const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
   const [contactForm, setContactForm] = useState({
     name: "",
     email: "",
@@ -24,7 +24,7 @@ export default function AboutPage() {
   const handleContactSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const res = await fetch(`${API}/contact/submit`, {
+      const res = await fetch(`${API_BASE}/contact/submit`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(contactForm),

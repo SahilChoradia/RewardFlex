@@ -13,6 +13,7 @@ import { CheckCircle2 } from "lucide-react";
 import { getTodayDiet } from "@/lib/diet-storage";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/auth-context";
+import API_BASE from "@/lib/api";
 
 export default function TasksPage() {
   const { loading: authLoading, hydrated } = useAuth();
@@ -21,7 +22,6 @@ export default function TasksPage() {
   const [isWakeUpDisabled, setIsWakeUpDisabled] = useState(false);
   const { toast } = useToast();
   const router = useRouter();
-  const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
   const [loading, setLoading] = useState(true);
 
   // Check wake-up time validation on mount and every minute

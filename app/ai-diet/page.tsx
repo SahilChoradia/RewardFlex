@@ -10,8 +10,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import { motion } from "framer-motion";
-import { useToast } from "@/hooks/use-toast";
 import { Loader2, Sparkles } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import API_BASE from "@/lib/api";
 import { useRouter } from "next/navigation";
 
 export default function AIDietPage() {
@@ -29,7 +30,6 @@ export default function AIDietPage() {
   const [dietPlan, setDietPlan] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
-  const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
   const handleGenerateDiet = async (e: React.FormEvent) => {
     e.preventDefault();

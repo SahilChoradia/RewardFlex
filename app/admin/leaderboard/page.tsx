@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/contexts/auth-context";
+import API_BASE from "@/lib/api";
 
 interface AdminUser {
   _id: string;
@@ -20,7 +21,6 @@ export default function AdminLeaderboardPage() {
   const { user, hydrated, loading: authLoading } = useAuth();
   const router = useRouter();
   const [users, setUsers] = useState<AdminUser[]>([]);
-  const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
   useEffect(() => {
     // DO NOT check auth until loading === false
