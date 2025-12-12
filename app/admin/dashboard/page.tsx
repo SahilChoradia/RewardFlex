@@ -43,12 +43,12 @@ export default function AdminDashboardPage() {
       try {
         setLoadingStats(true);
         const [eventsRes, offersRes, plansRes, templatesRes, waterRes, usersRes] = await Promise.all([
-          fetch(`${API_BASE}/admin/events`, { headers: { Authorization: `Bearer ${token}` } }),
-          fetch(`${API_BASE}/admin/offers`, { headers: { Authorization: `Bearer ${token}` } }),
-          fetch(`${API_BASE}/admin/subscription-plans`, { headers: { Authorization: `Bearer ${token}` } }),
-          fetch(`${API_BASE}/admin/task-templates`, { headers: { Authorization: `Bearer ${token}` } }),
-          fetch(`${API_BASE}/admin/water-pending`, { headers: { Authorization: `Bearer ${token}` } }),
-          fetch(`${API_BASE}/admin/users`, { headers: { Authorization: `Bearer ${token}` } }),
+          fetch(`${API_BASE}/admin/events`, { headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }, credentials: 'include' }),
+          fetch(`${API_BASE}/admin/offers`, { headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }, credentials: 'include' }),
+          fetch(`${API_BASE}/admin/subscription-plans`, { headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }, credentials: 'include' }),
+          fetch(`${API_BASE}/admin/task-templates`, { headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }, credentials: 'include' }),
+          fetch(`${API_BASE}/admin/water-pending`, { headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }, credentials: 'include' }),
+          fetch(`${API_BASE}/admin/users`, { headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }, credentials: 'include' }),
         ]);
 
         const [eventsData, offersData, plansData, templatesData, waterData, usersData] = await Promise.all([
