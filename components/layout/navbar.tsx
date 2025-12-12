@@ -31,7 +31,17 @@ export function Navbar() {
   const navLinks = !loading && hydrated
     ? [
         ...(isAuthenticated 
-          ? [{ href: role === "admin" ? "/admin/dashboard" : "/member/dashboard", label: "Dashboard" }] 
+          ? role === "admin"
+            ? [{ href: "/admin/dashboard", label: "Dashboard" }]
+            : [
+                { href: "/member/dashboard", label: "Dashboard" },
+                { href: "/tasks", label: "Tasks" },
+                { href: "/rank", label: "Rank" },
+                { href: "/rewards", label: "Rewards" },
+                { href: "/events", label: "Events" },
+                { href: "/subscription", label: "Subscription" },
+                { href: "/ai-diet", label: "AI Diet" },
+              ]
           : []),
       ]
     : [];
