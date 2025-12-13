@@ -1,7 +1,10 @@
 "use strict";
+// Load environment variables FIRST before any other imports
+import dotenv from "dotenv";
+dotenv.config();
+
 import express from "express";
 import cors from "cors";
-import dotenv from "dotenv";
 import path from "path";
 import { fileURLToPath } from "url";
 
@@ -24,8 +27,6 @@ import { requireRole } from "./middleware/role.js";
 import { adminAuth } from "./middleware/adminAuth.js";
 import { seedSubscriptionPlans } from "./utils/seedSubscriptionPlans.js";
 import { seedOffers } from "./utils/seedOffers.js";
-
-dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;

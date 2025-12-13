@@ -1,46 +1,17 @@
 "use strict";
-import nodemailer from "nodemailer";
-
-// Using provided credentials directly as requested
-const EMAIL_USER = "ninjagaming1607@gmail.com";
-const EMAIL_PASS = "hyyp kdye oyli kbuv";
-
-let transporter = null;
-
-export function createTransporter() {
-  if (transporter) {
-    return transporter;
-  }
-  
-  transporter = nodemailer.createTransport({
-    service: "gmail",
-    auth: {
-      user: EMAIL_USER,
-      pass: EMAIL_PASS,
-    },
-  });
-
-  // Verify transporter connection
-  transporter.verify(function (error, success) {
-    if (error) {
-      console.error("❌ Email transporter verification failed:", error);
-    } else {
-      console.log("✅ Email transporter is ready to send messages");
-    }
-  });
-
-  return transporter;
-}
+import { transporter } from "../utils/email.js";
 
 export async function sendMail({ to, subject, text, html }) {
   try {
+    if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+      throw new Error("EMAIL_USER or EMAIL_PASS not set in environment variables");
+    }
+
     console.log(`📧 Attempting to send email to: ${to}`);
     console.log(`📧 Subject: ${subject}`);
     
-    const transporter = createTransporter();
-    
     const mailOptions = {
-      from: `"StreakFitX Support" <${EMAIL_USER}>`,
+      from: process.env.EMAIL_USER,
       to,
       subject,
       text,
@@ -58,11 +29,13 @@ export async function sendMail({ to, subject, text, html }) {
     
     return info;
   } catch (error) {
-    console.error("❌ Email sending error:");
+    console.error("❌ OTP email error:", error);
     console.error("   Error message:", error.message);
     console.error("   Error code:", error.code);
     console.error("   Error command:", error.command);
-    console.error("   Full error:", error);
+    if (error.response) {
+      console.error("   SMTP Response:", error.response);
+    }
     throw error;
   }
 }

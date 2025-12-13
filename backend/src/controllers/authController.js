@@ -49,36 +49,36 @@ export async function signup(req, res) {
     console.log("✅ User created in MongoDB:", newUser._id);
 
     // Try to send email, but don't fail if email fails
-    try {
-      const htmlContent = `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-          <h2 style="color: #4F46E5;">Welcome to StreakFitX!</h2>
-          <p>Thank you for registering. Please verify your account using the OTP below:</p>
-          <div style="background-color: #F3F4F6; padding: 20px; text-align: center; margin: 20px 0; border-radius: 8px;">
-            <h1 style="color: #4F46E5; font-size: 32px; margin: 0; letter-spacing: 5px;">${otp}</h1>
-          </div>
-          <p style="color: #6B7280; font-size: 14px;">This OTP will expire in ${OTP_EXP_MINUTES} minutes.</p>
-          <p style="color: #6B7280; font-size: 14px;">If you didn't create this account, please ignore this email.</p>
-          <hr style="border: none; border-top: 1px solid #E5E7EB; margin: 20px 0;">
-          <p style="color: #9CA3AF; font-size: 12px;">© StreakFitX - Your Fitness Journey Companion</p>
+    const htmlContent = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <h2 style="color: #4F46E5;">Welcome to StreakFitX!</h2>
+        <p>Thank you for registering. Please verify your account using the OTP below:</p>
+        <div style="background-color: #F3F4F6; padding: 20px; text-align: center; margin: 20px 0; border-radius: 8px;">
+          <h1 style="color: #4F46E5; font-size: 32px; margin: 0; letter-spacing: 5px;">${otp}</h1>
         </div>
-      `;
-      
-      await sendMail({
-        to: email,
-        subject: "StreakFitX - Verify your account",
-        text: `Your OTP is ${otp}. It expires in ${OTP_EXP_MINUTES} minutes.`,
-        html: htmlContent,
+        <p style="color: #6B7280; font-size: 14px;">This OTP will expire in ${OTP_EXP_MINUTES} minutes.</p>
+        <p style="color: #6B7280; font-size: 14px;">If you didn't create this account, please ignore this email.</p>
+        <hr style="border: none; border-top: 1px solid #E5E7EB; margin: 20px 0;">
+        <p style="color: #9CA3AF; font-size: 12px;">© StreakFitX - Your Fitness Journey Companion</p>
+      </div>
+    `;
+    
+    sendMail({
+      to: email,
+      subject: "StreakFitX - Verify your account",
+      text: `Your OTP is ${otp}. It expires in ${OTP_EXP_MINUTES} minutes.`,
+      html: htmlContent,
+    })
+      .then(() => {
+        console.log("✅ OTP email sent successfully to:", email);
+        console.log("✅ OTP generated:", otp);
+      })
+      .catch((err) => {
+        console.error("❌ OTP email error:", err);
+        console.error("   Email sending failed (user still created)");
+        console.error("   User can request OTP resend later");
+        // Continue - user is created, they can request OTP resend later
       });
-      console.log("✅ OTP email sent successfully to:", email);
-      console.log("✅ OTP generated:", otp);
-    } catch (emailError) {
-      console.error("❌ Email sending failed (user still created):");
-      console.error("   Error:", emailError.message);
-      console.error("   Error code:", emailError.code);
-      console.error("   User can request OTP resend later");
-      // Continue - user is created, they can request OTP resend later
-    }
 
     // Always return success JSON response
     return res.status(200).json({
@@ -231,22 +231,22 @@ export async function resendOtp(req, res) {
     console.log("✅ New OTP generated for:", email);
     console.log("✅ OTP:", otp);
 
-    // Try to send email
-    try {
-      const htmlContent = `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-          <h2 style="color: #4F46E5;">StreakFitX - New OTP</h2>
-          <p>You requested a new OTP. Please use the code below to verify your account:</p>
-          <div style="background-color: #F3F4F6; padding: 20px; text-align: center; margin: 20px 0; border-radius: 8px;">
-            <h1 style="color: #4F46E5; font-size: 32px; margin: 0; letter-spacing: 5px;">${otp}</h1>
-          </div>
-          <p style="color: #6B7280; font-size: 14px;">This OTP will expire in ${OTP_EXP_MINUTES} minutes.</p>
-          <p style="color: #6B7280; font-size: 14px;">If you didn't request this OTP, please ignore this email.</p>
-          <hr style="border: none; border-top: 1px solid #E5E7EB; margin: 20px 0;">
-          <p style="color: #9CA3AF; font-size: 12px;">© StreakFitX - Your Fitness Journey Companion</p>
+    // Send email
+    const htmlContent = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <h2 style="color: #4F46E5;">StreakFitX - New OTP</h2>
+        <p>You requested a new OTP. Please use the code below to verify your account:</p>
+        <div style="background-color: #F3F4F6; padding: 20px; text-align: center; margin: 20px 0; border-radius: 8px;">
+          <h1 style="color: #4F46E5; font-size: 32px; margin: 0; letter-spacing: 5px;">${otp}</h1>
         </div>
-      `;
-      
+        <p style="color: #6B7280; font-size: 14px;">This OTP will expire in ${OTP_EXP_MINUTES} minutes.</p>
+        <p style="color: #6B7280; font-size: 14px;">If you didn't request this OTP, please ignore this email.</p>
+        <hr style="border: none; border-top: 1px solid #E5E7EB; margin: 20px 0;">
+        <p style="color: #9CA3AF; font-size: 12px;">© StreakFitX - Your Fitness Journey Companion</p>
+      </div>
+    `;
+    
+    try {
       await sendMail({
         to: email,
         subject: "StreakFitX - New Verification OTP",
@@ -255,10 +255,8 @@ export async function resendOtp(req, res) {
       });
       console.log("✅ Resend OTP email sent successfully to:", email);
     } catch (emailError) {
-      console.error("❌ Resend OTP email failed:");
-      console.error("   Error:", emailError.message);
-      console.error("   Error code:", emailError.code);
-      return res.status(500).json({ error: "Failed to send OTP email. Please try again." });
+      console.error("❌ OTP email error:", emailError);
+      throw emailError; // Re-throw to be caught by outer try-catch
     }
 
     return res.status(200).json({ 
