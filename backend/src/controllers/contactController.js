@@ -1,6 +1,6 @@
 "use strict";
 import { ContactMessage } from "../models/ContactMessage.js";
-import { sendEmail } from "../services/mailService.js";
+import { sendEmail } from "../utils/email.js";
 
 export async function submitContactForm(req, res) {
   try {

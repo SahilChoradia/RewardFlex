@@ -2,7 +2,7 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { User } from "../models/User.js";
-import { sendMail } from "../config/mailer.js";
+import { sendOtpEmail, sendEmail } from "../utils/email.js";
 import crypto from "crypto";
 
 const OTP_EXP_MINUTES = 10;
@@ -63,22 +63,19 @@ export async function signup(req, res) {
       </div>
     `;
 
-    sendMail({
-      to: email,
-      subject: "StreakFitX - Verify your account",
-      text: `Your OTP is ${otp}. It expires in ${OTP_EXP_MINUTES} minutes.`,
-      html: htmlContent,
-    })
-      .then(() => {
-        console.log("✅ OTP email sent successfully to:", email);
-        console.log("✅ OTP generated:", otp);
+    sendOtpEmail(email, otp)
+      .then((result) => {
+        if (result.success) {
+          console.log("✅ OTP email sent successfully to:", email);
+          console.log("✅ OTP generated:", otp);
+        } else {
+          console.error("❌ OTP email error:", result.error);
+        }
       })
       .catch((err) => {
-        console.error("❌ OTP email error:", err);
-        console.error("   Email sending failed (user still created)");
-        console.error("   User can request OTP resend later");
-        // Continue - user is created, they can request OTP resend later
+        console.error("❌ OTP email exception:", err);
       });
+
 
     // Always return success JSON response
     return res.status(200).json({
@@ -126,11 +123,11 @@ export async function verifyOtp(req, res) {
 
     // Try to send welcome email, but don't fail if it fails
     try {
-      await sendMail({
-        to: email,
-        subject: "Welcome to StreakFitX",
-        text: "Your account is verified. You can now login.",
-      });
+      await sendEmail(
+        email,
+        "Welcome to StreakFitX",
+        "Your account is verified. You can now login."
+      );
     } catch (emailError) {
       console.error("⚠️ Welcome email failed (verification still successful):", emailError.message);
     }
@@ -255,12 +252,10 @@ export async function resendOtp(req, res) {
     `;
 
     try {
-      await sendMail({
-        to: email,
-        subject: "StreakFitX - New Verification OTP",
-        text: `Your new OTP is ${otp}. It expires in ${OTP_EXP_MINUTES} minutes.`,
-        html: htmlContent,
-      });
+      const result = await sendOtpEmail(email, otp);
+      if (!result.success) {
+        throw result.error;
+      }
       console.log("✅ Resend OTP email sent successfully to:", email);
     } catch (emailError) {
       console.error("❌ OTP email error:", emailError);
