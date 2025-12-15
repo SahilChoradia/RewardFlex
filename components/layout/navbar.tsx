@@ -30,20 +30,21 @@ export function Navbar() {
   // Wait for loading and hydration to prevent SSR/client mismatch
   const navLinks = !loading && hydrated
     ? [
-        ...(isAuthenticated 
-          ? role === "admin"
-            ? [{ href: "/admin/dashboard", label: "Dashboard" }]
-            : [
-                { href: "/member/dashboard", label: "Dashboard" },
-                { href: "/tasks", label: "Tasks" },
-                { href: "/rank", label: "Rank" },
-                { href: "/rewards", label: "Rewards" },
-                { href: "/events", label: "Events" },
-                { href: "/subscription", label: "Subscription" },
-                { href: "/ai-diet", label: "AI Diet" },
-              ]
-          : []),
-      ]
+      ...(isAuthenticated
+        ? role === "admin"
+          ? [{ href: "/admin/dashboard", label: "Dashboard" }]
+          : [
+            { href: "/member/dashboard", label: "Dashboard" },
+            { href: "/about", label: "About" },
+            { href: "/tasks", label: "Tasks" },
+            { href: "/rank", label: "Rank" },
+            { href: "/rewards", label: "Rewards" },
+            { href: "/events", label: "Events" },
+            { href: "/subscription", label: "Subscription" },
+            { href: "/ai-diet", label: "AI Diet" },
+          ]
+        : []),
+    ]
     : [];
 
   const mobileLinks = navLinks;
@@ -51,7 +52,10 @@ export function Navbar() {
   return (
     <nav className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
-        <Link href="/" className="flex items-center space-x-2">
+        <Link
+          href={isAuthenticated ? (role === "admin" ? "/admin/dashboard" : "/member/dashboard") : "/"}
+          className="flex items-center space-x-2"
+        >
           <Dumbbell className="h-6 w-6 text-primary" />
           <span className="text-xl font-bold">StreakFitX</span>
         </Link>
@@ -68,9 +72,8 @@ export function Navbar() {
                   transition={{ type: "spring", stiffness: 400, damping: 17 }}
                 >
                   <span
-                    className={`text-sm font-medium transition-colors hover:text-primary ${
-                      isActive ? "text-primary" : "text-muted-foreground"
-                    }`}
+                    className={`text-sm font-medium transition-colors hover:text-primary ${isActive ? "text-primary" : "text-muted-foreground"
+                      }`}
                   >
                     {link.label}
                   </span>
@@ -151,9 +154,8 @@ export function Navbar() {
                   key={link.href}
                   href={link.href}
                   onClick={() => setMobileOpen(false)}
-                  className={`block text-sm font-medium transition-colors ${
-                    pathname === link.href ? "text-primary" : "text-foreground hover:text-primary"
-                  }`}
+                  className={`block text-sm font-medium transition-colors ${pathname === link.href ? "text-primary" : "text-foreground hover:text-primary"
+                    }`}
                 >
                   {link.label}
                 </Link>

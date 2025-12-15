@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/auth-context";
 import { useToast } from "@/hooks/use-toast";
-import API_BASE from "@/lib/api";
+import { adminFetch } from "@/lib/fetch";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
@@ -49,23 +49,10 @@ export default function AdminOffersPage() {
     active: true,
   });
 
-  useEffect(() => {
-    if (authLoading || !hydrated) return;
-    const token = localStorage.getItem("streakfitx_token") || localStorage.getItem("token");
-    if (!token || !user || user.role !== "admin") {
-      router.push("/login");
-      return;
-    }
-    fetchOffers();
-  }, [hydrated, user, router, authLoading]);
-
   const fetchOffers = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem("token");
-      const res = await fetch(`${API_BASE}/offers/admin/all`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await adminFetch("/offers/admin/all");
       const data = await res.json();
       if (res.ok && data.success) setOffers(data.offers || []);
     } catch (err) {
@@ -75,9 +62,16 @@ export default function AdminOffersPage() {
     }
   };
 
+  useEffect(() => {
+    if (authLoading || !hydrated) return;
+    if (!user || user.role !== "admin") {
+      router.replace("/login");
+      return;
+    }
+    fetchOffers();
+  }, [hydrated, user, router, authLoading]);
+
   const handleSubmit = async () => {
-    const token = localStorage.getItem("streakfitx_token") || localStorage.getItem("token");
-    if (!token) return;
     if (!formData.title) {
       toast({
         title: "Missing fields",
@@ -88,15 +82,11 @@ export default function AdminOffersPage() {
     }
     try {
       const url = editingOffer
-        ? `${API_BASE}/offers/admin/${editingOffer._id}`
-        : `${API_BASE}/offers/admin/create`;
+        ? `/offers/admin/${editingOffer._id}`
+        : `/offers/admin/create`;
       const method = editingOffer ? "PUT" : "POST";
-      const res = await fetch(url, {
+      const res = await adminFetch(url, {
         method,
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
         body: JSON.stringify({
           title: formData.title,
           description: formData.description,
@@ -119,12 +109,9 @@ export default function AdminOffersPage() {
 
   const handleDelete = async (id: string) => {
     if (!confirm("Are you sure you want to delete this offer?")) return;
-    const token = localStorage.getItem("token");
-    if (!token) return;
     try {
-      const res = await fetch(`${API_BASE}/offers/admin/${id}`, {
+      const res = await adminFetch(`/offers/admin/${id}`, {
         method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();
       if (data.success) {
@@ -251,7 +238,7 @@ export default function AdminOffersPage() {
                   <div className="flex-1 space-y-2">
                     <div className="flex items-center gap-2">
                       <h3 className="font-semibold text-lg">{offer.title}</h3>
-                    {offer.active ? (
+                      {offer.active ? (
                         <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">Active</span>
                       ) : (
                         <span className="text-xs bg-gray-100 text-gray-800 px-2 py-1 rounded">Inactive</span>
@@ -260,8 +247,8 @@ export default function AdminOffersPage() {
                     <p className="text-sm text-muted-foreground">{offer.description}</p>
                     <div className="flex gap-4 text-xs text-muted-foreground">
                       <span>Discount: {offer.discountPercent}%</span>
-                    {offer.validFrom && <span>From: {new Date(offer.validFrom).toLocaleDateString()}</span>}
-                    {offer.validUntil && <span>Until: {new Date(offer.validUntil).toLocaleDateString()}</span>}
+                      {offer.validFrom && <span>From: {new Date(offer.validFrom).toLocaleDateString()}</span>}
+                      {offer.validUntil && <span>Until: {new Date(offer.validUntil).toLocaleDateString()}</span>}
                     </div>
                   </div>
                   <div className="flex gap-2">
@@ -281,7 +268,3 @@ export default function AdminOffersPage() {
     </div>
   );
 }
-
-
-
-

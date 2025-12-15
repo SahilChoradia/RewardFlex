@@ -62,7 +62,7 @@ export async function signup(req, res) {
         <p style="color: #9CA3AF; font-size: 12px;">© StreakFitX - Your Fitness Journey Companion</p>
       </div>
     `;
-    
+
     sendMail({
       to: email,
       subject: "StreakFitX - Verify your account",
@@ -179,13 +179,21 @@ export async function login(req, res) {
       expiresIn: "30d",
     });
 
+    // Set httpOnly cookie
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production", // Use secure cookies in production
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax", // 'none' for cross-site (if frontend/backend on diff domains), 'lax' for local
+      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+    });
+
     console.log("✅ Login successful for:", email);
 
     // Always return JSON response
     return res.status(200).json({
       success: true,
       role,
-      token,
+      token, // Keep returning token for now just in case, but frontend should ignore it
       user: {
         id: user._id,
         name: user.name,
@@ -245,7 +253,7 @@ export async function resendOtp(req, res) {
         <p style="color: #9CA3AF; font-size: 12px;">© StreakFitX - Your Fitness Journey Companion</p>
       </div>
     `;
-    
+
     try {
       await sendMail({
         to: email,
@@ -259,9 +267,9 @@ export async function resendOtp(req, res) {
       throw emailError; // Re-throw to be caught by outer try-catch
     }
 
-    return res.status(200).json({ 
-      success: true, 
-      message: "New OTP sent to your email. Please check your inbox." 
+    return res.status(200).json({
+      success: true,
+      message: "New OTP sent to your email. Please check your inbox."
     });
   } catch (err) {
     console.error("❌ Resend OTP error:", err);
@@ -275,10 +283,10 @@ export async function me(req, res) {
     if (!user) {
       return res.status(404).json({ error: "User not found" });
     }
-    
+
     // Ensure admin role is preserved if admin email
     const role = user.email === "admin@streakfitx.com" ? "admin" : user.role;
-    
+
     return res.json({
       success: true,
       user: {
@@ -295,6 +303,20 @@ export async function me(req, res) {
   } catch (err) {
     console.error("❌ /auth/me error:", err);
     return res.status(500).json({ error: "Failed to fetch user" });
+  }
+}
+
+export async function logout(req, res) {
+  try {
+    res.clearCookie("token", {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+    });
+    return res.status(200).json({ success: true, message: "Logged out successfully" });
+  } catch (err) {
+    console.error("❌ Logout error:", err);
+    return res.status(500).json({ error: "Logout failed" });
   }
 }
 

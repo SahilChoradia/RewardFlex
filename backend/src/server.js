@@ -5,6 +5,7 @@ dotenv.config();
 
 import express from "express";
 import cors from "cors";
+import cookieParser from "cookie-parser";
 import path from "path";
 import { fileURLToPath } from "url";
 
@@ -38,7 +39,9 @@ const __dirname = path.dirname(__filename);
 const allowedOrigins = [
   "http://localhost:3000",
   "https://streakfitx.vercel.app",
-];
+  process.env.FRONTEND_URL,
+  process.env.CLIENT_URL,
+].filter(Boolean); // Remove undefined values
 
 app.use(
   cors({
@@ -53,6 +56,8 @@ app.use(
     credentials: true,
   })
 );
+
+app.use(cookieParser());
 
 app.use((req, res, next) => {
   res.header("Access-Control-Allow-Credentials", "true");

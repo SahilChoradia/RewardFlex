@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/auth-context";
 import { useToast } from "@/hooks/use-toast";
-import API_BASE from "@/lib/api";
+import { adminFetch } from "@/lib/fetch";
 
 interface PendingTask {
   _id: string;
@@ -24,27 +24,10 @@ export default function AdminWaterPage() {
   const [tasks, setTasks] = useState<PendingTask[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    // DO NOT check auth until loading === false
-    if (authLoading || !hydrated) return;
-    const token = localStorage.getItem("streakfitx_token") || localStorage.getItem("token");
-    if (!token) {
-      router.push("/login");
-      return;
-    }
-    if (!user || user.role !== "admin") {
-      router.push("/login");
-      return;
-    }
-    fetchData(token);
-  }, [hydrated, user, router, authLoading]);
-
-  const fetchData = async (token: string) => {
+  const fetchData = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/admin/water-pending`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await adminFetch("/admin/water-pending");
       const data = await res.json();
       if (res.ok && data.success) setTasks(data.tasks || []);
       else throw new Error(data.error || "Failed to load tasks");
@@ -55,13 +38,19 @@ export default function AdminWaterPage() {
     }
   };
 
+  useEffect(() => {
+    if (authLoading || !hydrated) return;
+    if (!user || user.role !== "admin") {
+      router.replace("/login");
+      return;
+    }
+    fetchData();
+  }, [hydrated, user, router, authLoading]);
+
   const handleAction = async (taskId: string, action: "approve" | "reject") => {
-    const token = localStorage.getItem("streakfitx_token") || localStorage.getItem("token");
-    if (!token) return;
     try {
-      const res = await fetch(`${API_BASE}/admin/${action}-water/${taskId}`, {
+      const res = await adminFetch(`/admin/${action}-water/${taskId}`, {
         method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();
       if (!res.ok || !data.success) throw new Error(data.error || "Action failed");
@@ -110,4 +99,3 @@ export default function AdminWaterPage() {
     </div>
   );
 }
-

@@ -103,13 +103,8 @@ export default function TasksPage() {
     if (authLoading || !hydrated) return;
     try {
       setLoading(true);
-      const token = localStorage.getItem("streakfitx_token") || localStorage.getItem("token");
-      if (!token) {
-        router.push("/login");
-        return;
-      }
       const res = await fetch(`${API_BASE}/tasks/today`, {
-        headers: { Authorization: `Bearer ${token}` },
+        credentials: 'include',
       });
       const data = await res.json();
       if (!res.ok || !data.success) {
@@ -122,7 +117,7 @@ export default function TasksPage() {
     } finally {
       setLoading(false);
     }
-  }, [API_BASE, mapTaskDoc, router, toast, authLoading, hydrated]);
+  }, [mapTaskDoc, router, toast, authLoading, hydrated]);
 
   useEffect(() => {
     fetchTodayTask();
@@ -134,12 +129,6 @@ export default function TasksPage() {
    */
   const handleComplete = async (taskId: string, validationData?: any) => {
     try {
-      const token = localStorage.getItem("streakfitx_token") || localStorage.getItem("token");
-      if (!token) {
-        toast({ title: "Not authenticated", description: "Please login again.", variant: "destructive" });
-        return;
-      }
-
       const task = tasks.find((t) => t.id === taskId);
       if (!task) return;
 
@@ -149,7 +138,7 @@ export default function TasksPage() {
       if (task.type === "wakeup") {
         res = await fetch(`${API_BASE}/tasks/wakeup`, {
           method: "POST",
-          headers: { Authorization: `Bearer ${token}` },
+          credentials: 'include',
         });
         data = await res.json();
       } else if (task.type === "water") {
@@ -161,9 +150,7 @@ export default function TasksPage() {
         formData.append("photo", validationData.imageBlob, "water-task.png");
         res = await fetch(`${API_BASE}/tasks/drink-water`, {
           method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+          credentials: 'include',
           body: formData,
         });
         data = await res.json();
@@ -176,15 +163,15 @@ export default function TasksPage() {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
           },
+          credentials: 'include',
           body: JSON.stringify({ link: validationData.link }),
         });
         data = await res.json();
       } else if (task.type === "diet") {
         res = await fetch(`${API_BASE}/tasks/diet-complete`, {
           method: "POST",
-          headers: { Authorization: `Bearer ${token}` },
+          credentials: 'include',
         });
         data = await res.json();
       }

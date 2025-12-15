@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/auth-context";
 import { useToast } from "@/hooks/use-toast";
-import API_BASE from "@/lib/api";
+import { adminFetch } from "@/lib/fetch";
 import { Progress } from "@/components/ui/progress";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { RankBadge } from "@/components/reusable/rank-badge";
@@ -52,23 +52,10 @@ export default function AdminRankPage() {
     rank: "Bronze" as "Bronze" | "Silver" | "Gold" | "Platinum",
   });
 
-  useEffect(() => {
-    if (authLoading || !hydrated) return;
-    const token = localStorage.getItem("streakfitx_token") || localStorage.getItem("token");
-    if (!token || !user || user.role !== "admin") {
-      router.push("/login");
-      return;
-    }
-    fetchLeaderboard();
-  }, [hydrated, user, router, authLoading]);
-
   const fetchLeaderboard = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem("streakfitx_token") || localStorage.getItem("token");
-      const res = await fetch(`${API_BASE}/admin/leaderboard`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await adminFetch("/admin/leaderboard");
       const data = await res.json();
       if (res.ok && data.success) {
         const sorted = (data.users || []).sort((a: LeaderboardUser, b: LeaderboardUser) => b.streak - a.streak);
@@ -81,17 +68,20 @@ export default function AdminRankPage() {
     }
   };
 
+  useEffect(() => {
+    if (authLoading || !hydrated) return;
+    if (!user || user.role !== "admin") {
+      router.replace("/login");
+      return;
+    }
+    fetchLeaderboard();
+  }, [hydrated, user, router, authLoading]);
+
   const handleUpdateRank = async () => {
     if (!editingUser) return;
-    const token = localStorage.getItem("streakfitx_token") || localStorage.getItem("token");
-    if (!token) return;
     try {
-      const res = await fetch(`${API_BASE}/admin/users/${editingUser._id}`, {
+      const res = await adminFetch(`/admin/users/${editingUser._id}`, {
         method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
         body: JSON.stringify(formData),
       });
       const data = await res.json();
@@ -237,9 +227,3 @@ export default function AdminRankPage() {
     </div>
   );
 }
-
-
-
-
-
-

@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/auth-context";
 import { useToast } from "@/hooks/use-toast";
-import API_BASE from "@/lib/api";
+import { adminFetch } from "@/lib/fetch";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
@@ -53,23 +53,10 @@ export default function AdminSubscriptionsPage() {
     active: true,
   });
 
-  useEffect(() => {
-    if (authLoading || !hydrated) return;
-    const token = localStorage.getItem("streakfitx_token") || localStorage.getItem("token");
-    if (!token || !user || user.role !== "admin") {
-      router.push("/login");
-      return;
-    }
-    fetchPlans();
-  }, [hydrated, user, router, authLoading]);
-
   const fetchPlans = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem("streakfitx_token") || localStorage.getItem("token");
-      const res = await fetch(`${API_BASE}/subscription/admin/all`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await adminFetch("/subscription/admin/all");
       const data = await res.json();
       if (res.ok && data.success) setPlans(data.plans || []);
     } catch (err) {
@@ -79,9 +66,16 @@ export default function AdminSubscriptionsPage() {
     }
   };
 
+  useEffect(() => {
+    if (authLoading || !hydrated) return;
+    if (!user || user.role !== "admin") {
+      router.replace("/login");
+      return;
+    }
+    fetchPlans();
+  }, [hydrated, user, router, authLoading]);
+
   const handleSubmit = async () => {
-    const token = localStorage.getItem("streakfitx_token") || localStorage.getItem("token");
-    if (!token) return;
     if (!formData.name || !formData.slug || !formData.price || !formData.durationDays) {
       toast({
         title: "Missing fields",
@@ -92,19 +86,15 @@ export default function AdminSubscriptionsPage() {
     }
     try {
       const url = editingPlan
-        ? `${API_BASE}/subscription/admin/${editingPlan._id}`
-        : `${API_BASE}/subscription/admin/create`;
+        ? `/subscription/admin/${editingPlan._id}`
+        : `/subscription/admin/create`;
       const method = editingPlan ? "PUT" : "POST";
       const featuresArray = formData.features
         .split(/[\n,]/)
         .map((f) => f.trim())
         .filter(Boolean);
-      const res = await fetch(url, {
+      const res = await adminFetch(url, {
         method,
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
         body: JSON.stringify({
           name: formData.name,
           slug: formData.slug,
@@ -129,12 +119,9 @@ export default function AdminSubscriptionsPage() {
 
   const handleDelete = async (id: string) => {
     if (!confirm("Are you sure you want to delete this subscription plan?")) return;
-    const token = localStorage.getItem("streakfitx_token") || localStorage.getItem("token");
-    if (!token) return;
     try {
-      const res = await fetch(`${API_BASE}/subscription/admin/${id}`, {
+      const res = await adminFetch(`/subscription/admin/${id}`, {
         method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();
       if (!res.ok || !data.success) throw new Error(data.error || "Delete failed");
@@ -271,7 +258,7 @@ export default function AdminSubscriptionsPage() {
                   <div className="flex-1 space-y-2">
                     <div className="flex items-center gap-2">
                       <h3 className="font-semibold text-lg">{plan.name}</h3>
-                    {plan.active ? (
+                      {plan.active ? (
                         <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">Active</span>
                       ) : (
                         <span className="text-xs bg-gray-100 text-gray-800 px-2 py-1 rounded">Inactive</span>
@@ -279,9 +266,9 @@ export default function AdminSubscriptionsPage() {
                     </div>
                     <div className="flex gap-4 text-sm">
                       <span className="font-semibold">{plan.currency} {plan.price}</span>
-                    <span className="text-muted-foreground">{plan.durationDays} days</span>
-                    <span className="text-muted-foreground lowercase">slug: {plan.slug}</span>
-                    {plan.discountLabel && <span className="text-muted-foreground">{plan.discountLabel}</span>}
+                      <span className="text-muted-foreground">{plan.durationDays} days</span>
+                      <span className="text-muted-foreground lowercase">slug: {plan.slug}</span>
+                      {plan.discountLabel && <span className="text-muted-foreground">{plan.discountLabel}</span>}
                     </div>
                     {plan.features.length > 0 && (
                       <ul className="text-sm text-muted-foreground list-disc list-inside">
@@ -308,7 +295,3 @@ export default function AdminSubscriptionsPage() {
     </div>
   );
 }
-
-
-
-

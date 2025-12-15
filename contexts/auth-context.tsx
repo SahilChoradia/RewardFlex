@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { User, UserRole, RankTier } from "@/types";
 import { getRankTier } from "@/lib/utils";
+import { API_BASE } from "@/lib/api";
 
 interface AuthContextType {
   user: User | null;
@@ -28,7 +29,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [hydrated, setHydrated] = useState(false);
   const [loading, setLoading] = useState(true);
-  const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+
 
   const mapUser = (dataUser: any): User => ({
     id: dataUser._id || dataUser.id,
@@ -41,16 +42,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   });
 
   const refreshUser = async () => {
-    const token = localStorage.getItem("token") || localStorage.getItem("streakfitx_token");
-    
-    if (!token) {
-      setUser(null);
-      return;
-    }
-
     try {
+      // We don't check for token in localStorage anymore as we use httpOnly cookies
       const res = await fetch(`${API_BASE}/auth/me`, {
-        headers: { Authorization: `Bearer ${token}` },
+        // No Authorization header needed, browser sends cookie
         credentials: 'include',
       });
 
@@ -59,23 +54,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (data.success && data.user) {
           const loggedUser: User = mapUser(data.user);
           setUser(loggedUser);
-          localStorage.setItem("token", token);
-          localStorage.setItem("streakfitx_token", token);
           localStorage.setItem("streakfitx_user", JSON.stringify(loggedUser));
-          return;
+        } else {
+          setUser(null);
+          localStorage.removeItem("streakfitx_user");
         }
+      } else if (res.status === 401 || res.status === 403) {
+        setUser(null);
+        localStorage.removeItem("streakfitx_user");
+      } else {
+        console.error("Failed to verify token:", res.status);
       }
-
-      localStorage.removeItem("token");
-      localStorage.removeItem("streakfitx_token");
-      localStorage.removeItem("streakfitx_user");
-      setUser(null);
     } catch (err) {
       console.error("Auto-auth error:", err);
-      localStorage.removeItem("token");
-      localStorage.removeItem("streakfitx_token");
-      localStorage.removeItem("streakfitx_user");
-      setUser(null);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -83,12 +76,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Auto-authenticate on mount using token
     const autoAuth = async () => {
       await refreshUser();
-      setLoading(false);
+      // Loading is handled in refreshUser finally block
       setHydrated(true);
     };
 
     autoAuth();
-  }, [API_BASE]);
+  }, []);
 
   const signup = async (name: string, email: string, password: string) => {
     try {
@@ -116,9 +109,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { success: true, message: data.message || "Registered successfully. Verify OTP/Proceed to Login" };
     } catch (err: any) {
       console.error("❌ Signup network error:", err);
-      return { 
-        success: false, 
-        message: err.message || "Network error. Please check your connection and try again." 
+      return {
+        success: false,
+        message: err.message || "Network error. Please check your connection and try again."
       };
     }
   };
@@ -172,43 +165,54 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           errorData = { error: `Server error: ${res.status} ${res.statusText}` };
         }
         console.error("Login error:", errorData);
-        return { 
-          success: false, 
-          message: errorData.error || "Login failed. Please check your credentials." 
+        return {
+          success: false,
+          message: errorData.error || "Login failed. Please check your credentials."
         };
       }
 
       const data = await res.json();
-      
+
       if (!data.success) {
-        return { 
-          success: false, 
-          message: data.error || "Login failed. Please check your credentials." 
+        return {
+          success: false,
+          message: data.error || "Login failed. Please check your credentials."
         };
       }
 
-    const loggedUser: User = mapUser(data.user);
-      
-      // Store token + user (use consistent "token" key)
-      localStorage.setItem("token", data.token);
-      localStorage.setItem("streakfitx_token", data.token);
+      const loggedUser: User = mapUser(data.user);
+
+      // Do NOT store token in localStorage (using httpOnly cookies)
+      // Remove any old tokens if they exist
+      localStorage.removeItem("streakfitx_token");
+      localStorage.removeItem("token");
+
       localStorage.setItem("streakfitx_user", JSON.stringify(loggedUser));
       setUser(loggedUser);
-      
+
       console.log("✅ Login successful");
       return { success: true, role: loggedUser.role };
     } catch (err: any) {
       console.error("❌ Login network error:", err);
-      return { 
-        success: false, 
-        message: err.message || "Network error. Please check your connection and try again." 
+      return {
+        success: false,
+        message: err.message || "Network error. Please check your connection and try again."
       };
     }
   };
 
-  const logout = () => {
-    localStorage.removeItem("token");
+  const logout = async () => {
+    try {
+      await fetch(`${API_BASE}/auth/logout`, {
+        method: "POST",
+        credentials: "include",
+      });
+    } catch (error) {
+      console.error("Logout error:", error);
+    }
+
     localStorage.removeItem("streakfitx_token");
+    localStorage.removeItem("token");
     localStorage.removeItem("streakfitx_user");
     setUser(null);
   };
@@ -228,28 +232,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.setItem("streakfitx_user", JSON.stringify(updatedUser));
   };
 
+  const contextValue = React.useMemo(
+    () => ({
+      user,
+      isAuthenticated: !!user,
+      role: user?.role || "visitor",
+      hydrated,
+      loading,
+      login,
+      signup,
+      verifyOtp,
+      logout,
+      updateStreak,
+      setRank,
+      refreshUser,
+    }),
+    [user, hydrated, loading]
+  );
+
   // Show loading state until auth check is complete
   if (loading) {
     return null; // or return a loader component
   }
 
   return (
-    <AuthContext.Provider
-      value={{
-        user,
-        isAuthenticated: !!user,
-        role: user?.role || "visitor",
-        hydrated,
-        loading,
-        login,
-        signup,
-        verifyOtp,
-        logout,
-        updateStreak,
-        setRank,
-        refreshUser,
-      }}
-    >
+    <AuthContext.Provider value={contextValue}>
       {children}
     </AuthContext.Provider>
   );

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -20,9 +20,28 @@ export default function SignupPage() {
   const [otp, setOtp] = useState("");
   const [otpStep, setOtpStep] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const { signup, verifyOtp } = useAuth();
+  const { signup, verifyOtp, isAuthenticated, loading, role } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
+
+  useEffect(() => {
+    if (!loading && isAuthenticated) {
+      if (role === "admin") {
+        router.replace("/admin/dashboard");
+      } else {
+        router.replace("/member/dashboard");
+      }
+    }
+  }, [isAuthenticated, loading, role, router]);
+
+  // Prevent rendering the signup form if we are authenticated or still loading
+  if (loading || isAuthenticated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

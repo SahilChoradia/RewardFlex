@@ -8,6 +8,37 @@ import { TaskTemplate } from "../models/TaskTemplate.js";
 import { getRankFromStreak } from "../utils/rank.js";
 import mongoose from "mongoose";
 
+// ========== DASHBOARD STATS ==========
+export async function adminStats(_req, res) {
+  try {
+    const totalUsers = await User.countDocuments();
+    // Assuming active subscription means subscription field is not null or based on some logic
+    // For now, let's count users with a subscription object
+    const activeSubs = await User.countDocuments({ subscription: { $ne: null } });
+
+    const pendingTasks = await Task.countDocuments({
+      status: "pending",
+      type: "water",
+      drinkWaterVerified: false
+    });
+
+    const totalEvents = await Event.countDocuments();
+
+    res.json({
+      success: true,
+      stats: {
+        totalUsers,
+        activeSubscriptions: activeSubs,
+        pendingTasks,
+        totalEvents,
+      },
+    });
+  } catch (err) {
+    console.error("adminStats error:", err);
+    res.status(500).json({ error: "Failed to fetch admin stats" });
+  }
+}
+
 // ========== WATER VERIFICATION ==========
 export async function pendingWater(_req, res) {
   try {
@@ -128,17 +159,17 @@ export async function adminUpdateUser(req, res) {
     const { id } = req.params;
     const { name, email, role, streak, rank, verified } = req.body;
     if (!mongoose.Types.ObjectId.isValid(id)) return res.status(400).json({ error: "Invalid id" });
-    
+
     const user = await User.findById(id);
     if (!user) return res.status(404).json({ error: "User not found" });
-    
+
     if (name) user.name = name;
     if (email) user.email = email;
     if (role && ["member", "admin"].includes(role)) user.role = role;
     if (typeof streak === "number") user.streak = streak;
     if (rank && ["Bronze", "Silver", "Gold", "Platinum"].includes(rank)) user.rank = rank;
     if (typeof verified === "boolean") user.verified = verified;
-    
+
     await user.save();
     return res.json({ success: true, user });
   } catch (err) {
@@ -213,10 +244,10 @@ export async function adminUpdateEvent(req, res) {
     const { id } = req.params;
     const { title, description, shortDescription, fullDescription, date, image, discountPercent, location } = req.body;
     if (!mongoose.Types.ObjectId.isValid(id)) return res.status(400).json({ error: "Invalid id" });
-    
+
     const event = await Event.findById(id);
     if (!event) return res.status(404).json({ error: "Event not found" });
-    
+
     if (title) event.title = title;
     if (description) event.description = description;
     if (shortDescription !== undefined) event.shortDescription = shortDescription;
@@ -225,7 +256,7 @@ export async function adminUpdateEvent(req, res) {
     if (image !== undefined) event.image = image;
     if (discountPercent !== undefined) event.discountPercent = discountPercent;
     if (location !== undefined) event.location = location;
-    
+
     await event.save();
     res.json({ success: true, event });
   } catch (err) {
@@ -300,10 +331,10 @@ export async function adminUpdateOffer(req, res) {
     const { id } = req.params;
     const { title, description, discountPercent, code, startDate, endDate, image, isActive } = req.body;
     if (!mongoose.Types.ObjectId.isValid(id)) return res.status(400).json({ error: "Invalid id" });
-    
+
     const offer = await Offer.findById(id);
     if (!offer) return res.status(404).json({ error: "Offer not found" });
-    
+
     if (title) offer.title = title;
     if (description) offer.description = description;
     if (discountPercent !== undefined) offer.discountPercent = discountPercent;
@@ -312,7 +343,7 @@ export async function adminUpdateOffer(req, res) {
     if (endDate) offer.endDate = endDate;
     if (image !== undefined) offer.image = image;
     if (isActive !== undefined) offer.isActive = isActive;
-    
+
     await offer.save();
     res.json({ success: true, offer });
   } catch (err) {
@@ -386,10 +417,10 @@ export async function adminUpdateSubscriptionPlan(req, res) {
     const { id } = req.params;
     const { name, description, price, currency, duration, features, isActive } = req.body;
     if (!mongoose.Types.ObjectId.isValid(id)) return res.status(400).json({ error: "Invalid id" });
-    
+
     const plan = await SubscriptionPlan.findById(id);
     if (!plan) return res.status(404).json({ error: "Subscription plan not found" });
-    
+
     if (name) plan.name = name;
     if (description) plan.description = description;
     if (price !== undefined) plan.price = price;
@@ -397,7 +428,7 @@ export async function adminUpdateSubscriptionPlan(req, res) {
     if (duration !== undefined) plan.duration = duration;
     if (features !== undefined) plan.features = features;
     if (isActive !== undefined) plan.isActive = isActive;
-    
+
     await plan.save();
     res.json({ success: true, plan });
   } catch (err) {
@@ -473,17 +504,17 @@ export async function adminUpdateTaskTemplate(req, res) {
     const { id } = req.params;
     const { title, description, type, points, requiresVerification, isActive } = req.body;
     if (!mongoose.Types.ObjectId.isValid(id)) return res.status(400).json({ error: "Invalid id" });
-    
+
     const template = await TaskTemplate.findById(id);
     if (!template) return res.status(404).json({ error: "Task template not found" });
-    
+
     if (title) template.title = title;
     if (description) template.description = description;
     if (type && ["water", "exercise", "diet", "wakeup"].includes(type)) template.type = type;
     if (points !== undefined) template.points = points;
     if (requiresVerification !== undefined) template.requiresVerification = requiresVerification;
     if (isActive !== undefined) template.isActive = isActive;
-    
+
     await template.save();
     res.json({ success: true, template });
   } catch (err) {

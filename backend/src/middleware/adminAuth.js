@@ -2,10 +2,14 @@
 import jwt from "jsonwebtoken";
 
 export function adminAuth(req, res, next) {
-  const authHeader = req.headers.authorization;
-  if (!authHeader) return res.status(401).json({ error: "No token" });
+  let token;
 
-  const token = authHeader.split(" ")[1];
+  if (req.cookies && req.cookies.token) {
+    token = req.cookies.token;
+  } else if (req.headers.authorization && req.headers.authorization.startsWith("Bearer ")) {
+    token = req.headers.authorization.split(" ")[1];
+  }
+
   if (!token) return res.status(401).json({ error: "No token" });
 
   try {

@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/auth-context";
 import { useToast } from "@/hooks/use-toast";
-import API_BASE from "@/lib/api";
+import { adminFetch } from "@/lib/fetch";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
@@ -56,23 +56,10 @@ export default function AdminTasksPage() {
     isActive: true,
   });
 
-  useEffect(() => {
-    if (authLoading || !hydrated) return;
-    const token = localStorage.getItem("streakfitx_token") || localStorage.getItem("token");
-    if (!token || !user || user.role !== "admin") {
-      router.push("/login");
-      return;
-    }
-    fetchTemplates();
-  }, [hydrated, user, router, authLoading]);
-
   const fetchTemplates = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem("streakfitx_token") || localStorage.getItem("token");
-      const res = await fetch(`${API_BASE}/admin/task-templates`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await adminFetch("/admin/task-templates");
       const data = await res.json();
       if (res.ok && data.success) setTemplates(data.templates || []);
     } catch (err) {
@@ -82,9 +69,16 @@ export default function AdminTasksPage() {
     }
   };
 
+  useEffect(() => {
+    if (authLoading || !hydrated) return;
+    if (!user || user.role !== "admin") {
+      router.replace("/login");
+      return;
+    }
+    fetchTemplates();
+  }, [hydrated, user, router, authLoading]);
+
   const handleSubmit = async () => {
-    const token = localStorage.getItem("streakfitx_token") || localStorage.getItem("token");
-    if (!token) return;
     if (!formData.title || !formData.description) {
       toast({
         title: "Missing fields",
@@ -95,15 +89,11 @@ export default function AdminTasksPage() {
     }
     try {
       const url = editingTemplate
-        ? `${API_BASE}/admin/task-templates/${editingTemplate._id}`
-        : `${API_BASE}/admin/task-templates`;
+        ? `/admin/task-templates/${editingTemplate._id}`
+        : `/admin/task-templates`;
       const method = editingTemplate ? "PUT" : "POST";
-      const res = await fetch(url, {
+      const res = await adminFetch(url, {
         method,
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
         body: JSON.stringify(formData),
       });
       const data = await res.json();
@@ -119,12 +109,9 @@ export default function AdminTasksPage() {
 
   const handleDelete = async (id: string) => {
     if (!confirm("Are you sure you want to delete this task template?")) return;
-    const token = localStorage.getItem("streakfitx_token") || localStorage.getItem("token");
-    if (!token) return;
     try {
-      const res = await fetch(`${API_BASE}/admin/task-templates/${id}`, {
+      const res = await adminFetch(`/admin/task-templates/${id}`, {
         method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();
       if (!res.ok || !data.success) throw new Error(data.error || "Delete failed");
@@ -287,9 +274,3 @@ export default function AdminTasksPage() {
     </div>
   );
 }
-
-
-
-
-
-

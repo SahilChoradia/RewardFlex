@@ -2,7 +2,7 @@
 
 /* eslint-disable react/no-unescaped-entities */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -18,9 +18,28 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const { login } = useAuth();
+  const { login, isAuthenticated, loading, role } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
+
+  useEffect(() => {
+    if (!loading && isAuthenticated) {
+      if (role === "admin") {
+        router.replace("/admin/dashboard");
+      } else {
+        router.replace("/member/dashboard");
+      }
+    }
+  }, [isAuthenticated, loading, role, router]);
+
+  // Prevent rendering the login form if we are authenticated or still loading
+  if (loading || isAuthenticated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

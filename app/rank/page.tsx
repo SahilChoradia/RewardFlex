@@ -34,11 +34,11 @@ export default function RankPage() {
 
   const progressInTier = currentTier
     ? Math.min(
-        100,
-        ((currentStreak - currentTier.minDays + 1) /
-          (currentTier.maxDays - currentTier.minDays + 1)) *
-          100
-      )
+      100,
+      ((currentStreak - currentTier.minDays + 1) /
+        (currentTier.maxDays - currentTier.minDays + 1)) *
+      100
+    )
     : 100;
 
   const daysToNextRank = nextTier
@@ -48,9 +48,8 @@ export default function RankPage() {
   const fetchLeaderboard = async () => {
     setIsLoadingBoard(true);
     try {
-      const token = localStorage.getItem("streakfitx_token") || localStorage.getItem("token");
       const res = await fetch(`${API_BASE}/leaderboard`, {
-        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+        credentials: 'include',
       });
       const data = await res.json();
       if (!res.ok || !data.success) {
@@ -156,9 +155,8 @@ export default function RankPage() {
                     whileHover={{ scale: 1.05, y: -5 }}
                   >
                     <Card
-                      className={`relative overflow-hidden ${
-                        isCurrent ? "border-primary shadow-lg shadow-primary/20" : ""
-                      } ${!isUnlocked ? "opacity-60" : ""}`}
+                      className={`relative overflow-hidden ${isCurrent ? "border-primary shadow-lg shadow-primary/20" : ""
+                        } ${!isUnlocked ? "opacity-60" : ""}`}
                     >
                       {isCurrent && (
                         <div className="absolute top-2 right-2">

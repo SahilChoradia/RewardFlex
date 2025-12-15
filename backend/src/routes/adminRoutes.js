@@ -1,6 +1,8 @@
 "use strict";
 import { Router } from "express";
 import {
+  // Dashboard Stats
+  adminStats,
   // Water verification
   pendingWater,
   approveWater,
@@ -40,6 +42,9 @@ import {
 } from "../controllers/adminController.js";
 
 const router = Router();
+
+// ========== DASHBOARD STATS ==========
+router.get("/stats", adminStats);
 
 // ========== WATER VERIFICATION ==========
 router.get("/water-pending", pendingWater);
