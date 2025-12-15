@@ -1,5 +1,7 @@
 "use strict";
 import { transporter } from "../utils/email.js";
+import dotenv from "dotenv";
+dotenv.config();
 
 export async function sendEmail(to, subject, text) {
   try {

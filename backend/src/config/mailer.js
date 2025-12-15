@@ -1,5 +1,7 @@
 "use strict";
 import { transporter } from "../utils/email.js";
+import dotenv from "dotenv";
+dotenv.config();
 
 export async function sendMail({ to, subject, text, html }) {
   try {
@@ -9,7 +11,7 @@ export async function sendMail({ to, subject, text, html }) {
 
     console.log(`📧 Attempting to send email to: ${to}`);
     console.log(`📧 Subject: ${subject}`);
-    
+
     const mailOptions = {
       from: process.env.EMAIL_USER,
       to,
@@ -22,11 +24,11 @@ export async function sendMail({ to, subject, text, html }) {
     console.log(`📧 To: ${mailOptions.to}`);
 
     const info = await transporter.sendMail(mailOptions);
-    
+
     console.log("✅ Email sent successfully!");
     console.log("📧 Message ID:", info.messageId);
     console.log("📧 Response:", info.response);
-    
+
     return info;
   } catch (error) {
     console.error("❌ OTP email error:", error);

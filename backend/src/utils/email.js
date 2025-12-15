@@ -1,5 +1,7 @@
 "use strict";
 import nodemailer from "nodemailer";
+import dotenv from "dotenv";
+dotenv.config();
 
 // Ensure environment variables are loaded
 // This file should be imported AFTER dotenv.config() is called in server.js
