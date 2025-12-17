@@ -21,37 +21,47 @@ export async function generateDiet(req, res) {
       return res.status(400).json({ success: false, error: "Height must be above 100 cm." });
 
     // ----------------------------------------
-    // EXPERT DIETICIAN TRAINING PROMPT
+    // AI DIET PLAN GENERATION PROMPT
     // ----------------------------------------
     const prompt = `
-You are a certified expert dietician with 20+ years of experience creating personalized diet charts for Indian users.
-Your job: create a SAFE, PRACTICAL, CUSTOMIZED full-day diet plan.
+Generate a personalized full-day diet plan based on the following user information.
+
+IMPORTANT FORMATTING REQUIREMENTS:
+- Start with a brief note: "This diet plan is AI-generated and should be used as a general guide. Consult a healthcare professional before making significant dietary changes."
+- Use clear, conversational language (not overly formal or robotic)
+- Focus ONLY on the main content - no lengthy introductions or excessive explanations
+- Keep it professional but humanized
 
 User Details:
 - Age: ${age}
 - Weight: ${weight} kg
 - Height: ${height} cm
 - Gender: ${gender}
-- Goal: ${goal}  (Fat Loss / Muscle Gain / Maintenance)
+- Goal: ${goal} (Fat Loss / Muscle Gain / Maintenance)
 - Activity Level: ${activityLevel}
-- Food Preference: ${foodPreference} (If vegetarian, DO NOT include any non-veg items)
+- Food Preference: ${foodPreference} (If vegetarian, STRICTLY avoid all non-veg items)
 - Allergies: ${allergies || "None"}
 
-Rules:
-1. If the user selects Vegetarian → STRICTLY avoid all non-veg food.
-2. Create:
-   - Breakfast
-   - Mid-morning snack
-   - Lunch
-   - Evening snack
-   - Dinner
-3. Include calorie estimates for each meal.
-4. Use Indian-food options as much as possible.
-5. Keep meals realistic, affordable, and easy to prepare.
-6. Avoid extreme dieting or unsafe recommendations.
-7. Present the result in a clean, professional format.
+Required Format:
+1. Start with the AI disclaimer (one line)
+2. Daily Calorie Target: [estimated calories]
+3. Breakfast: [meal description with approximate calories]
+4. Mid-Morning Snack: [snack description with approximate calories]
+5. Lunch: [meal description with approximate calories]
+6. Evening Snack: [snack description with approximate calories]
+7. Dinner: [meal description with approximate calories]
+8. Optional: Brief tips (2-3 short bullet points max)
 
-Now generate the complete diet plan.
+Rules:
+- If vegetarian/vegan → STRICTLY avoid all non-veg items (meat, fish, eggs, etc.)
+- Use Indian food options when possible
+- Keep meals realistic, affordable, and easy to prepare
+- Include calorie estimates for each meal
+- Write in a natural, conversational tone
+- Avoid excessive explanations or marketing language
+- No greetings, introductions, or closing statements - just the plan content
+
+Generate the diet plan now in the exact format specified above.
 `;
 
     // CALL GEMINI
